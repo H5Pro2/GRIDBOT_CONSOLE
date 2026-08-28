@@ -143,6 +143,18 @@ async function handleLoadStore(response) {
 
 async function handleSaveStore(request, response) {
   const body = await readRequestJson(request)
+  let currentStore = {}
+  try {
+    currentStore = JSON.parse(await readFile(storeFilePath, 'utf8'))
+  } catch {
+    currentStore = {}
+  }
+  const currentLanguageUpdatedAt = Number(currentStore.languageUpdatedAt) || 0
+  const nextLanguageUpdatedAt = Number(body.languageUpdatedAt) || 0
+  if (currentLanguageUpdatedAt > nextLanguageUpdatedAt) {
+    body.language = currentStore.language
+    body.languageUpdatedAt = currentLanguageUpdatedAt
+  }
   await mkdir(dirname(storeFilePath), { recursive: true })
   await writeFile(storeFilePath, JSON.stringify(body, null, 2), 'utf8')
   sendJson(response, 200, { saved: true })

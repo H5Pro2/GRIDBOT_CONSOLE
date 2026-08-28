@@ -39,6 +39,8 @@ type Store = {
   exchanges: Exchange[]
   bots: Bot[]
   activeBotId: string
+  language?: Language
+  languageUpdatedAt?: number
 }
 
 type DebugEntry = {
@@ -108,8 +110,153 @@ type CreateGridSummary = {
 }
 
 const storageKey = 'gridbot-menu-2-ui-only-v2'
+const languageKey = 'gridbot-menu-2-language'
 const exchangeTemplates = ['Phemex', 'Binance']
 const minPollIntervalSeconds = 3
+type Language = 'de' | 'en'
+
+const copy = {
+  de: {
+    globalSetup: 'Globales Setup',
+    appTitle: 'Gridbot Menu',
+    subline: 'Bots anlegen, Grid-Mechaniken konfigurieren und Borsen-Zugange im Setup-Menü verwalten.',
+    botMenu: 'Bot Menu',
+    bots: 'Bots',
+    active: 'Aktiv',
+    created: 'Erstellt',
+    draft: 'Entwurf',
+    deleteBot: 'Bot loschen',
+    addBot: 'Bot hinzufugen',
+    botConfig: 'Bot Konfiguration',
+    noBot: 'Kein Bot ausgewahlt',
+    openDebug: 'Debug offnen',
+    openSetup: 'Setup offnen',
+    botName: 'Bot Name',
+    exchange: 'Borse',
+    asset: 'Asset',
+    quote: 'Quote',
+    spotBalance: 'Spot Guthaben',
+    assetBalance: 'Asset Guthaben',
+    balance: 'Guthaben',
+    error: 'Fehler',
+    gridMechanic: 'Grid Mechanik',
+    botActive: 'Bot aktiv',
+    create: 'Erstellen',
+    start: 'Start',
+    stop: 'Stopp',
+    gridLower: 'Grid unten',
+    gridUpper: 'Grid oben',
+    gridCount: 'Anzahl Grids',
+    assetAmount: 'Asset-Menge',
+    useStartAsset: 'Start-Asset verwenden',
+    pollInterval: 'Grid-Abfragezeit',
+    gridDistance: 'Grid Abstand',
+    orders: 'Orders',
+    orderNeed: 'Orderbedarf',
+    query: 'Abfrage',
+    orderBook: 'Orderbuch',
+    orderPlan: 'Order Plan',
+    ready: 'Bereit',
+    openOrderList: 'Orderliste öffnen',
+    programSetup: 'Programm Setup',
+    exchangesSecrets: 'Borsen & Secrets',
+    closeSetup: 'Setup schliessen',
+    close: 'Schliessen',
+    secretNote: 'Phemex API Key und Secret werden lokal in der .env Datei gespeichert.',
+    exchanges: 'Borsen',
+    apiKey: 'API Key',
+    keyPlaceholder: 'Key eintragen',
+    secret: 'Secret',
+    passphrase: 'Passphrase / Zusatz',
+    optional: 'Optional',
+    savedPlaceholder: '•••••••• hinterlegt',
+    apply: 'Ubernehmen',
+    system: 'System',
+    closeDebug: 'Debug schliessen',
+    clear: 'Leeren',
+    noEntries: 'Keine Eintraege.',
+    closeOrderPlan: 'Order Plan schliessen',
+    locked: 'gesperrt',
+    buySell: 'Buy/Sell',
+    priceRange: 'Preisbereich',
+    phemexOrderId: 'Femex Order ID',
+    noOpenOrders: 'Keine offenen Gridbot-Orders geladen.',
+    collapse: 'Einklappen',
+    expand: 'Ausklappen',
+    collapseMechanic: 'Grid Mechanik einklappen',
+    expandMechanic: 'Grid Mechanik ausklappen',
+  },
+  en: {
+    globalSetup: 'Global Setup',
+    appTitle: 'Gridbot Menu',
+    subline: 'Create bots, configure grid mechanics and manage exchange access in setup.',
+    botMenu: 'Bot Menu',
+    bots: 'Bots',
+    active: 'Active',
+    created: 'Created',
+    draft: 'Draft',
+    deleteBot: 'Delete bot',
+    addBot: 'Add bot',
+    botConfig: 'Bot Configuration',
+    noBot: 'No bot selected',
+    openDebug: 'Open debug',
+    openSetup: 'Open setup',
+    botName: 'Bot Name',
+    exchange: 'Exchange',
+    asset: 'Asset',
+    quote: 'Quote',
+    spotBalance: 'Spot Balance',
+    assetBalance: 'Asset Balance',
+    balance: 'Balance',
+    error: 'Error',
+    gridMechanic: 'Grid Mechanic',
+    botActive: 'Bot active',
+    create: 'Create',
+    start: 'Start',
+    stop: 'Stop',
+    gridLower: 'Grid lower',
+    gridUpper: 'Grid upper',
+    gridCount: 'Grid Count',
+    assetAmount: 'Asset Amount',
+    useStartAsset: 'Use start asset',
+    pollInterval: 'Grid Poll Interval',
+    gridDistance: 'Grid Distance',
+    orders: 'Orders',
+    orderNeed: 'Order Need',
+    query: 'Query',
+    orderBook: 'Order Book',
+    orderPlan: 'Order Plan',
+    ready: 'Ready',
+    openOrderList: 'Open order list',
+    programSetup: 'Program Setup',
+    exchangesSecrets: 'Exchanges & Secrets',
+    closeSetup: 'Close setup',
+    close: 'Close',
+    secretNote: 'Phemex API key and secret are stored locally in the .env file.',
+    exchanges: 'Exchanges',
+    apiKey: 'API Key',
+    keyPlaceholder: 'Enter key',
+    secret: 'Secret',
+    passphrase: 'Passphrase / Extra',
+    optional: 'Optional',
+    savedPlaceholder: '•••••••• saved',
+    apply: 'Apply',
+    system: 'System',
+    closeDebug: 'Close debug',
+    clear: 'Clear',
+    noEntries: 'No entries.',
+    closeOrderPlan: 'Close order plan',
+    locked: 'locked',
+    buySell: 'Buy/Sell',
+    priceRange: 'Price range',
+    phemexOrderId: 'Phemex Order ID',
+    noOpenOrders: 'No open gridbot orders loaded.',
+    collapse: 'Collapse',
+    expand: 'Expand',
+    collapseMechanic: 'Collapse grid mechanic',
+    expandMechanic: 'Expand grid mechanic',
+  },
+} as const
 
 const createExchange = (name: string): Exchange => ({
   id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
@@ -141,6 +288,8 @@ const initialStore: Store = {
   exchanges: [createExchange('Phemex'), createExchange('Binance')],
   bots: [starterBot(1)],
   activeBotId: '',
+  language: 'de',
+  languageUpdatedAt: 0,
 }
 
 function NumericInput({
@@ -214,6 +363,10 @@ function normalizeExchanges(exchanges: Exchange[] = []) {
   })
 }
 
+function normalizeLanguage(value: unknown): Language {
+  return value === 'en' ? 'en' : 'de'
+}
+
 async function readJsonResponse<T extends { error?: string }>(response: Response, fallbackMessage: string) {
   const payload = await response.json().catch(() => undefined) as T | undefined
   if (!response.ok || payload?.error) throw new Error(payload?.error || fallbackMessage)
@@ -243,9 +396,16 @@ function loadStore(): Store {
         exchangeId: exchanges.some((exchange) => exchange.id === bot.exchangeId) ? bot.exchangeId : exchanges[0].id,
       })),
       activeBotId: parsed.activeBotId || bots[0].id,
+      language: normalizeLanguage(parsed.language ?? localStorage.getItem(languageKey)),
+      languageUpdatedAt: Number.isFinite(parsed.languageUpdatedAt) ? parsed.languageUpdatedAt : 0,
     }
   } catch {
-    return { ...initialStore, activeBotId: initialStore.bots[0].id }
+    return {
+      ...initialStore,
+      activeBotId: initialStore.bots[0].id,
+      language: normalizeLanguage(localStorage.getItem(languageKey)),
+      languageUpdatedAt: 0,
+    }
   }
 }
 
@@ -268,6 +428,8 @@ function normalizeStore(store: Store): Store {
       exchangeId: exchanges.some((exchange) => exchange.id === bot.exchangeId) ? bot.exchangeId : exchanges[0].id,
     })),
     activeBotId: store.activeBotId || bots[0].id,
+    language: normalizeLanguage(store.language),
+    languageUpdatedAt: Number.isFinite(store.languageUpdatedAt) ? store.languageUpdatedAt : 0,
   }
 }
 
@@ -285,6 +447,19 @@ function stripSecrets(store: Store): Store {
 
 function serializePublicStore(store: Store) {
   return JSON.stringify(stripSecrets(store))
+}
+
+function mergeIncomingStore(current: Store, incoming: Store): Store {
+  const currentLanguageUpdatedAt = Number(current.languageUpdatedAt) || 0
+  const incomingLanguageUpdatedAt = Number(incoming.languageUpdatedAt) || 0
+  if (currentLanguageUpdatedAt > incomingLanguageUpdatedAt) {
+    return {
+      ...incoming,
+      language: normalizeLanguage(current.language),
+      languageUpdatedAt: currentLanguageUpdatedAt,
+    }
+  }
+  return incoming
 }
 
 function App() {
@@ -309,6 +484,13 @@ function App() {
   const [nowMs, setNowMs] = useState(Date.now())
   const activeBot = store.bots.find((bot) => bot.id === store.activeBotId) ?? store.bots[0]
   const setupExchange = store.exchanges.find((exchange) => exchange.id === setupExchangeId) ?? store.exchanges[0]
+  const language = normalizeLanguage(store.language)
+  const text = copy[language]
+
+  const setLanguage = (nextLanguage: Language) => {
+    setStore((current) => ({ ...current, language: nextLanguage, languageUpdatedAt: Date.now() }))
+    localStorage.setItem(languageKey, nextLanguage)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -318,8 +500,11 @@ function App() {
         if (cancelled) return
         if (payload?.bots?.length || payload?.exchanges?.length) {
           const nextStore = normalizeStore(payload as Store)
-          lastServerStoreRef.current = serializePublicStore(nextStore)
-          setStore(nextStore)
+          setStore((current) => {
+            const mergedStore = mergeIncomingStore(current, nextStore)
+            lastServerStoreRef.current = serializePublicStore(mergedStore)
+            return mergedStore
+          })
         }
       })
       .catch(() => undefined)
@@ -371,10 +556,13 @@ function App() {
         .then((payload) => {
           if (!payload?.bots?.length && !payload?.exchanges?.length) return
           const nextStore = normalizeStore(payload as Store)
-          const nextStoreText = serializePublicStore(nextStore)
-          if (nextStoreText === lastServerStoreRef.current) return
-          lastServerStoreRef.current = nextStoreText
-          setStore(nextStore)
+          setStore((current) => {
+            const mergedStore = mergeIncomingStore(current, nextStore)
+            const nextStoreText = serializePublicStore(mergedStore)
+            if (nextStoreText === lastServerStoreRef.current) return current
+            lastServerStoreRef.current = nextStoreText
+            return mergedStore
+          })
         })
         .catch(() => undefined)
     }, 1500)
@@ -710,16 +898,16 @@ function App() {
     <main className="app-shell">
       <aside className="setup-panel">
         <div className="program-head">
-          <p className="eyebrow">Globales Setup</p>
-          <h1>Gridbot Menu</h1>
-          <p className="subline">Bots anlegen, Grid-Mechaniken konfigurieren und Borsen-Zugange im Setup-Menü verwalten.</p>
+          <p className="eyebrow">{text.globalSetup}</p>
+          <h1>{text.appTitle}</h1>
+          <p className="subline">{text.subline}</p>
         </div>
 
         <div className="sidebar-bots">
           <div className="section-head">
             <div>
-              <p className="eyebrow">Bot Menu</p>
-              <h2>{store.bots.length} Bots</h2>
+              <p className="eyebrow">{text.botMenu}</p>
+              <h2>{store.bots.length} {text.bots}</h2>
             </div>
           </div>
 
@@ -738,15 +926,15 @@ function App() {
                 <span>{bot.name}</span>
                 <strong>{bot.symbol}</strong>
                 <small>
-                  {bot.running ? 'Aktiv' : bot.created ? 'Erstellt' : 'Entwurf'} · {bot.grids} Grids ·{' '}
+                  {bot.running ? text.active : bot.created ? text.created : text.draft} · {bot.grids} Grids ·{' '}
                   {getBotCountdown(bot)}s
                 </small>
-                <button className="delete-bot" type="button" onClick={(event) => { event.stopPropagation(); deleteBot(bot.id) }} aria-label={`${bot.name} loschen`} title="Bot loschen">
+                <button className="delete-bot" type="button" onClick={(event) => { event.stopPropagation(); deleteBot(bot.id) }} aria-label={`${text.deleteBot}: ${bot.name}`} title={text.deleteBot}>
                   ×
                 </button>
               </div>
             ))}
-            <button className="add-tile" type="button" onClick={addBot} aria-label="Bot hinzufugen">+</button>
+            <button className="add-tile" type="button" onClick={addBot} aria-label={text.addBot}>+</button>
           </div>
         </div>
       </aside>
@@ -754,12 +942,16 @@ function App() {
       <section className="workspace">
         <div className="toolbar">
           <div>
-            <p className="eyebrow">Bot Konfiguration</p>
-            <h2>{activeBot?.name || 'Kein Bot ausgewahlt'}</h2>
+            <p className="eyebrow">{text.botConfig}</p>
+            <h2>{activeBot?.name || text.noBot}</h2>
           </div>
           <div className="toolbar-actions">
-            <button className="icon-button debug-button" type="button" onClick={() => setDebugOpen(true)} aria-label="Debug offnen" title="Debug">D</button>
-            <button className="icon-button" type="button" onClick={() => setSetupOpen(true)} aria-label="Setup offnen" title="Setup">⚙</button>
+            <div className="language-toggle" aria-label="Language">
+              <button className={language === 'en' ? 'active' : ''} type="button" onClick={() => setLanguage('en')}>EN</button>
+              <button className={language === 'de' ? 'active' : ''} type="button" onClick={() => setLanguage('de')}>DE</button>
+            </div>
+            <button className="icon-button debug-button" type="button" onClick={() => setDebugOpen(true)} aria-label={text.openDebug} title="Debug">D</button>
+            <button className="icon-button" type="button" onClick={() => setSetupOpen(true)} aria-label={text.openSetup} title="Setup">⚙</button>
           </div>
         </div>
 
@@ -767,18 +959,18 @@ function App() {
           <section className={`bot-editor ${mechanicsOpen ? 'mechanics-open' : 'mechanics-closed'}`}>
             <div className="editor-main">
               <div className="form-grid">
-                <label>Bot Name<input value={activeBot.name} onChange={(event) => updateBot({ name: event.target.value })} /></label>
+                <label>{text.botName}<input value={activeBot.name} onChange={(event) => updateBot({ name: event.target.value })} /></label>
                 <label>
-                  Borse
+                  {text.exchange}
                   <select value={activeBot.exchangeId} onChange={(event) => updateBot({ exchangeId: event.target.value })}>
                     {store.exchanges.map((exchange) => <option key={exchange.id} value={exchange.id}>{exchange.name}</option>)}
                   </select>
                 </label>
-                <label>Asset<input value={activeBot.baseAsset} onChange={(event) => updateMarket({ baseAsset: event.target.value })} /></label>
-                <label>Quote<input value={activeBot.quoteAsset} onChange={(event) => updateMarket({ quoteAsset: event.target.value })} /></label>
-                <div className="account-strip" title={activeBalanceError || spotStatus || 'Guthaben'}>
-                  <span>Spot Guthaben<b>{activeBalanceError ? 'Fehler' : activeBalances.quote.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 8 })} {activeBot.quoteAsset}</b></span>
-                  <span>Asset Guthaben<b>{activeBalanceError ? 'Fehler' : activeBalances.base.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 8 })} {activeBot.baseAsset}</b></span>
+                <label>{text.asset}<input value={activeBot.baseAsset} onChange={(event) => updateMarket({ baseAsset: event.target.value })} /></label>
+                <label>{text.quote}<input value={activeBot.quoteAsset} onChange={(event) => updateMarket({ quoteAsset: event.target.value })} /></label>
+                <div className="account-strip" title={activeBalanceError || spotStatus || text.balance}>
+                  <span>{text.spotBalance}<b>{activeBalanceError ? text.error : activeBalances.quote.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 8 })} {activeBot.quoteAsset}</b></span>
+                  <span>{text.assetBalance}<b>{activeBalanceError ? text.error : activeBalances.base.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 8 })} {activeBot.baseAsset}</b></span>
                 </div>
               </div>
 
@@ -793,17 +985,17 @@ function App() {
               />
             </div>
 
-            <button className="mechanics-toggle" type="button" onClick={() => setMechanicsOpen((open) => !open)} aria-label={mechanicsOpen ? 'Grid Mechanik einklappen' : 'Grid Mechanik ausklappen'} title={mechanicsOpen ? 'Einklappen' : 'Ausklappen'}>
+            <button className="mechanics-toggle" type="button" onClick={() => setMechanicsOpen((open) => !open)} aria-label={mechanicsOpen ? text.collapseMechanic : text.expandMechanic} title={mechanicsOpen ? text.collapse : text.expand}>
               {mechanicsOpen ? '›' : '‹'}
             </button>
 
             <div className="grid-settings">
               <div className="section-head">
-                <h2>Grid Mechanik</h2>
-                <span className={`bot-status ${activeBot.running ? 'active' : ''}`}>Bot aktiv</span>
+                <h2>{text.gridMechanic}</h2>
+                <span className={`bot-status ${activeBot.running ? 'active' : ''}`}>{text.botActive}</span>
               </div>
               <div className="bot-actions">
-                <button type="button" onClick={() => { void createGrid(activeBot) }}>Erstellen</button>
+                <button type="button" onClick={() => { void createGrid(activeBot) }}>{text.create}</button>
                 <button type="button" onClick={() => {
                   const startedAt = Date.now()
                   const nextBot = { ...activeBot, created: true, running: true }
@@ -814,30 +1006,30 @@ function App() {
                     nextRunAt: startedAt + activeBot.pollIntervalSeconds * 1000,
                   })
                   void runBotCycle(nextBot)
-                }}>Start</button>
+                }}>{text.start}</button>
                 <button className={activeBot.running ? 'stop-action active' : 'stop-action'} type="button" onClick={() => {
                   updateBot({ running: false, nextRunAt: undefined })
                   logDebug('UI: Stopp geklickt.')
-                }}>Stopp</button>
+                }}>{text.stop}</button>
               </div>
-              <label>Grid unten<NumericInput value={activeBot.lower} min={0} onValue={(value) => updateBot({ lower: value })} /></label>
-              <label>Grid oben<NumericInput value={activeBot.upper} min={0} onValue={(value) => updateBot({ upper: value })} /></label>
-              <label>Anzahl Grids<NumericInput integer value={activeBot.grids} min={2} max={200} onValue={(value) => updateBot({ grids: value })} /></label>
-              <label>Asset-Menge<NumericInput value={activeBot.orderSize} min={0} onValue={(value) => updateBot({ orderSize: value })} /></label>
-              <label className="toggle"><input type="checkbox" checked={activeBot.useStartAsset} onChange={(event) => updateBot({ useStartAsset: event.target.checked })} />Start-Asset verwenden</label>
-              <label>Grid-Abfragezeit<NumericInput integer value={activeBot.pollIntervalSeconds} min={minPollIntervalSeconds} max={3600} onValue={(value) => updateBot({ pollIntervalSeconds: value })} /></label>
+              <label>{text.gridLower}<NumericInput value={activeBot.lower} min={0} onValue={(value) => updateBot({ lower: value })} /></label>
+              <label>{text.gridUpper}<NumericInput value={activeBot.upper} min={0} onValue={(value) => updateBot({ upper: value })} /></label>
+              <label>{text.gridCount}<NumericInput integer value={activeBot.grids} min={2} max={200} onValue={(value) => updateBot({ grids: value })} /></label>
+              <label>{text.assetAmount}<NumericInput value={activeBot.orderSize} min={0} onValue={(value) => updateBot({ orderSize: value })} /></label>
+              <label className="toggle"><input type="checkbox" checked={activeBot.useStartAsset} onChange={(event) => updateBot({ useStartAsset: event.target.checked })} />{text.useStartAsset}</label>
+              <label>{text.pollInterval}<NumericInput integer value={activeBot.pollIntervalSeconds} min={minPollIntervalSeconds} max={3600} onValue={(value) => updateBot({ pollIntervalSeconds: value })} /></label>
               <div className="metrics">
-                <span>Grid Abstand: <b>{gridSpacing.toLocaleString('de-DE')} {activeBot.quoteAsset}</b></span>
-                <span>Orders: <b>{activeCreateSummary.orders}</b></span>
+                <span>{text.gridDistance}: <b>{gridSpacing.toLocaleString('de-DE')} {activeBot.quoteAsset}</b></span>
+                <span>{text.orders}: <b>{activeCreateSummary.orders}</b></span>
                 <span>Buy/Sell: <b>{activeCreateSummary.buyOrders}/{activeCreateSummary.sellOrders}</b></span>
                 <span>Asset: <b>{activeBot.orderSize} {activeBot.baseAsset}</b></span>
-                <span>Orderbedarf: <b>{requiredCapital.toLocaleString('de-DE', { maximumFractionDigits: 2 })} {activeBot.quoteAsset}</b></span>
-                <span>Abfrage: <b>{activeBot.pollIntervalSeconds}s</b></span>
-                <span>Orderbuch: <b>{activeCreateSummary.blocked}</b></span>
+                <span>{text.orderNeed}: <b>{requiredCapital.toLocaleString('de-DE', { maximumFractionDigits: 2 })} {activeBot.quoteAsset}</b></span>
+                <span>{text.query}: <b>{activeBot.pollIntervalSeconds}s</b></span>
+                <span>{text.orderBook}: <b>{activeCreateSummary.blocked}</b></span>
               </div>
               <div className="order-preview">
-                <div className="section-head"><h2>Order Plan</h2><small>Bereit</small></div>
-                <button className="open-order-plan" type="button" onClick={() => setOrderPlanOpen(true)}>Orderliste öffnen<span>{activeCreateSummary.orders} Orders</span></button>
+                <div className="section-head"><h2>{text.orderPlan}</h2><small>{text.ready}</small></div>
+                <button className="open-order-plan" type="button" onClick={() => setOrderPlanOpen(true)}>{text.openOrderList}<span>{activeCreateSummary.orders} {text.orders}</span></button>
               </div>
             </div>
           </section>
@@ -848,12 +1040,12 @@ function App() {
         <div className="setup-overlay" role="presentation" onMouseDown={() => setSetupOpen(false)}>
           <section className="setup-drawer" role="dialog" aria-modal="true" aria-labelledby="setup-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="drawer-head">
-              <div><p className="eyebrow">Programm Setup</p><h2 id="setup-title">Borsen & Secrets</h2></div>
-              <button className="icon-button" type="button" onClick={() => setSetupOpen(false)} aria-label="Setup schliessen" title="Schliessen">×</button>
+              <div><p className="eyebrow">{text.programSetup}</p><h2 id="setup-title">{text.exchangesSecrets}</h2></div>
+              <button className="icon-button" type="button" onClick={() => setSetupOpen(false)} aria-label={text.closeSetup} title={text.close}>×</button>
             </div>
-            <p className="secret-note">Phemex API Key und Secret werden lokal in der .env Datei gespeichert.</p>
+            <p className="secret-note">{text.secretNote}</p>
             <div className="section-head">
-              <h2>Borsen</h2>
+              <h2>{text.exchanges}</h2>
               <select onChange={(event) => addExchange(event.target.value)} value={setupExchange?.name ?? ''}>
                 {exchangeTemplates.map((name) => <option key={name} value={name}>{name}</option>)}
               </select>
@@ -863,10 +1055,10 @@ function App() {
                 <div className="exchange-title">
                   <strong>{setupExchange.name}</strong>
                 </div>
-                <label>API Key<input type="password" value={setupExchange.key} onChange={(event) => updateExchange({ key: event.target.value })} placeholder={setupExchange.name.toLowerCase() === 'phemex' && secretStatus.hasKey ? '•••••••• hinterlegt' : 'Key eintragen'} autoComplete="off" /></label>
-                <label>Secret<input type="password" value={setupExchange.secret} onChange={(event) => updateExchange({ secret: event.target.value })} placeholder={setupExchange.name.toLowerCase() === 'phemex' && secretStatus.hasSecret ? '•••••••• hinterlegt' : 'Secret'} autoComplete="off" /></label>
-                <label>Passphrase / Zusatz<input type="password" value={setupExchange.passphrase} onChange={(event) => updateExchange({ passphrase: event.target.value })} placeholder={setupExchange.name.toLowerCase() === 'phemex' && secretStatus.hasPassphrase ? '•••••••• hinterlegt' : 'Optional'} autoComplete="off" /></label>
-                <button className="primary save-secret" type="button" onClick={saveExchangeDraft}>Ubernehmen</button>
+                <label>{text.apiKey}<input type="password" value={setupExchange.key} onChange={(event) => updateExchange({ key: event.target.value })} placeholder={setupExchange.name.toLowerCase() === 'phemex' && secretStatus.hasKey ? text.savedPlaceholder : text.keyPlaceholder} autoComplete="off" /></label>
+                <label>{text.secret}<input type="password" value={setupExchange.secret} onChange={(event) => updateExchange({ secret: event.target.value })} placeholder={setupExchange.name.toLowerCase() === 'phemex' && secretStatus.hasSecret ? text.savedPlaceholder : text.secret} autoComplete="off" /></label>
+                <label>{text.passphrase}<input type="password" value={setupExchange.passphrase} onChange={(event) => updateExchange({ passphrase: event.target.value })} placeholder={setupExchange.name.toLowerCase() === 'phemex' && secretStatus.hasPassphrase ? text.savedPlaceholder : text.optional} autoComplete="off" /></label>
+                <button className="primary save-secret" type="button" onClick={saveExchangeDraft}>{text.apply}</button>
                 {saveNotice && <div className="save-toast" role="status">{saveNotice}</div>}
               </div>
             )}
@@ -878,12 +1070,12 @@ function App() {
         <div className="debug-overlay" role="presentation" onMouseDown={() => setDebugOpen(false)}>
           <section className="debug-drawer" role="dialog" aria-modal="true" aria-labelledby="debug-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="drawer-head">
-              <div><p className="eyebrow">System</p><h2 id="debug-title">Debug</h2></div>
-              <button className="icon-button" type="button" onClick={() => setDebugOpen(false)} aria-label="Debug schliessen" title="Schliessen">×</button>
+              <div><p className="eyebrow">{text.system}</p><h2 id="debug-title">Debug</h2></div>
+              <button className="icon-button" type="button" onClick={() => setDebugOpen(false)} aria-label={text.closeDebug} title={text.close}>×</button>
             </div>
-            <button className="clear-debug" type="button" onClick={() => setDebugEntries([])}>Leeren</button>
+            <button className="clear-debug" type="button" onClick={() => setDebugEntries([])}>{text.clear}</button>
             <div className="debug-log">
-              {debugEntries.length === 0 && <p className="debug-empty">Keine Eintraege.</p>}
+              {debugEntries.length === 0 && <p className="debug-empty">{text.noEntries}</p>}
               {debugEntries.map((entry) => <article className="debug-entry" key={entry.id}><time>{entry.timestamp}</time><p>{entry.message}</p></article>)}
             </div>
           </section>
@@ -894,20 +1086,20 @@ function App() {
         <div className="modal-overlay" role="presentation" onMouseDown={() => setOrderPlanOpen(false)}>
           <section className="order-plan-modal" role="dialog" aria-modal="true" aria-labelledby="order-plan-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="drawer-head">
-              <div><p className="eyebrow">Orderbuch</p><h2 id="order-plan-title">Order Plan</h2></div>
-              <button className="icon-button" type="button" onClick={() => setOrderPlanOpen(false)} aria-label="Order Plan schliessen" title="Schliessen">×</button>
+              <div><p className="eyebrow">{text.orderBook}</p><h2 id="order-plan-title">{text.orderPlan}</h2></div>
+              <button className="icon-button" type="button" onClick={() => setOrderPlanOpen(false)} aria-label={text.closeOrderPlan} title={text.close}>×</button>
             </div>
-            <div className="order-plan-summary"><span>Bereit</span><span>{activeCreateSummary.blocked} gesperrt</span><span>{activeCreateSummary.buyOrders}/{activeCreateSummary.sellOrders} Buy/Sell</span></div>
+            <div className="order-plan-summary"><span>{text.ready}</span><span>{activeCreateSummary.blocked} {text.locked}</span><span>{activeCreateSummary.buyOrders}/{activeCreateSummary.sellOrders} {text.buySell}</span></div>
             <div className="order-list expanded">
               {activeGridOrders.length ? activeGridOrders.map((order, index) => (
                 <article className={`order-row ${order.side}`} key={`${order.orderId || order.price}-${index}`}>
                   <b>{order.side === 'buy' ? 'Buy' : 'Sell'}</b>
                   <span>{order.price.toLocaleString('de-DE', { maximumFractionDigits: 8 })} {activeBot.quoteAsset}</span>
-                  <small>Preisbereich</small>
-                  <small>Femex Order ID: {order.orderId || '-'}</small>
+                  <small>{text.priceRange}</small>
+                  <small>{text.phemexOrderId}: {order.orderId || '-'}</small>
                 </article>
               )) : (
-                <p className="order-empty">Keine offenen Gridbot-Orders geladen.</p>
+                <p className="order-empty">{text.noOpenOrders}</p>
               )}
             </div>
           </section>
