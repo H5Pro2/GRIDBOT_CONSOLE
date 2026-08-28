@@ -1,0 +1,63 @@
+{
+  "exchanges": [
+    {
+      "id": "phemex",
+      "name": "Phemex",
+      "key": "",
+      "secret": "",
+      "passphrase": "",
+      "spotValue": 0
+    },
+    {
+      "id": "binance",
+      "name": "Binance",
+      "key": "",
+      "secret": "",
+      "passphrase": "",
+      "spotValue": 0
+    }
+  ],
+  "bots": [
+    {
+      "id": "9944e690-67cf-43b6-bd80-941166b1e250",
+      "name": "SOL_BOT 80 -> 103 USDT",
+      "exchangeId": "phemex",
+      "symbol": "SOLUSDT",
+      "baseAsset": "SOL",
+      "quoteAsset": "USDT",
+      "lower": 82,
+      "upper": 110,
+      "grids": 40,
+      "orderSize": 0.1,
+      "useStartAsset": true,
+      "pollIntervalSeconds": 10,
+      "created": true,
+      "running": true,
+      "lastRunAt": 1787930136067,
+      "nextRunAt": 1787930146067,
+      "balances": {
+        "base": 0.010580000000000034,
+        "quote": 4.758670970000026
+      },
+      "balanceError": ""
+    },
+    {
+      "id": "e58656d8-fe84-47da-b7b7-c5137a43e33a",
+      "name": "SOL_BOT 50 -> 80 USDT",
+      "exchangeId": "phemex",
+      "symbol": "SOLUSDT",
+      "baseAsset": "SOL",
+      "quoteAsset": "USDT",
+      "lower": 50,
+      "upper": 80,
+      "grids": 40,
+      "orderSize": 0.1,
+      "useStartAsset": true,
+      "pollIntervalSeconds": 10,
+      "created": true,
+      "running": false,
+      "balanceError": ""
+    }
+  ],
+  "activeBotId": "9944e690-67cf-43b6-bd80-941166b1e250"
+}
