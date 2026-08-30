@@ -33,11 +33,11 @@
       "pollIntervalSeconds": 10,
       "created": true,
       "running": true,
-      "lastRunAt": 1787943450745,
-      "nextRunAt": 1787943460745,
+      "lastRunAt": 1788113198129,
+      "nextRunAt": 1788113208129,
       "balances": {
-        "base": 0.018670999999999993,
-        "quote": 6.87581917
+        "base": 0.01827099999999998,
+        "quote": 5.45125096999999
       },
       "balanceError": ""
     },
@@ -61,5 +61,5 @@
   ],
   "activeBotId": "9944e690-67cf-43b6-bd80-941166b1e250",
   "language": "de",
-  "languageUpdatedAt": 1787934086691
+  "languageUpdatedAt": 1788077725771
 }

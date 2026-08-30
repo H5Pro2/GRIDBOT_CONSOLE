@@ -70,9 +70,13 @@ type SnapshotResponse = {
 type GridOrder = {
   orderId: string
   side: 'buy' | 'sell'
+  status?: string
   price: number
   baseSize?: number
   quoteSize?: number
+  lockedBySellPrice?: number
+  lockedBySellOrderId?: string
+  sourceBuyPrice?: number
 }
 
 type CreateGridResponse = {
@@ -826,6 +830,7 @@ function App() {
           grids: bot.grids,
           orderSize: bot.orderSize,
           useStartAsset: bot.useStartAsset,
+          knownOrders: gridOrders[bot.id] ?? [],
         }),
       })
       const payload = await readJsonResponse<MonitorResponse>(response, 'Überwachung fehlgeschlagen.')
@@ -1092,11 +1097,14 @@ function App() {
             <div className="order-plan-summary"><span>{text.ready}</span><span>{activeCreateSummary.blocked} {text.locked}</span><span>{activeCreateSummary.buyOrders}/{activeCreateSummary.sellOrders} {text.buySell}</span></div>
             <div className="order-list expanded">
               {activeGridOrders.length ? activeGridOrders.map((order, index) => (
-                <article className={`order-row ${order.side}`} key={`${order.orderId || order.price}-${index}`}>
-                  <b>{order.side === 'buy' ? 'Buy' : 'Sell'}</b>
+                <article className={`order-row ${order.side} ${order.status ?? ''}`} key={`${order.orderId || order.price}-${index}`}>
+                  <b>{order.status?.startsWith('locked') ? 'Buy gesperrt' : order.side === 'buy' ? 'Buy' : 'Sell'}</b>
                   <span>{order.price.toLocaleString('de-DE', { maximumFractionDigits: 8 })} {activeBot.quoteAsset}</span>
                   <small>{text.priceRange}</small>
-                  <small>{text.phemexOrderId}: {order.orderId || '-'}</small>
+                  <small>{text.phemexOrderId}: {order.orderId || order.lockedBySellOrderId || '-'}</small>
+                  {order.status?.startsWith('locked') && Number.isFinite(order.lockedBySellPrice) && (
+                    <small>Sell-Ziel: {order.lockedBySellPrice!.toLocaleString('de-DE', { maximumFractionDigits: 8 })} {activeBot.quoteAsset}</small>
+                  )}
                 </article>
               )) : (
                 <p className="order-empty">{text.noOpenOrders}</p>
