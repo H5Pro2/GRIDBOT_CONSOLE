@@ -33,6 +33,7 @@ type Bot = {
     quote: number
   }
   balanceError?: string
+  orders?: GridOrder[]
 }
 
 type Store = {
@@ -397,6 +398,7 @@ function loadStore(): Store {
           ? bot.balances
           : undefined,
         balanceError: typeof bot.balanceError === 'string' ? bot.balanceError : '',
+        orders: Array.isArray(bot.orders) ? bot.orders : undefined,
         exchangeId: exchanges.some((exchange) => exchange.id === bot.exchangeId) ? bot.exchangeId : exchanges[0].id,
       })),
       activeBotId: parsed.activeBotId || bots[0].id,
@@ -429,6 +431,7 @@ function normalizeStore(store: Store): Store {
         ? bot.balances
         : undefined,
       balanceError: typeof bot.balanceError === 'string' ? bot.balanceError : '',
+      orders: Array.isArray(bot.orders) ? bot.orders : undefined,
       exchangeId: exchanges.some((exchange) => exchange.id === bot.exchangeId) ? bot.exchangeId : exchanges[0].id,
     })),
     activeBotId: store.activeBotId || bots[0].id,
@@ -620,7 +623,7 @@ function App() {
   const activeBalances = activeBot.balances ?? accountBalances[activeBot.id] ?? { base: 0, quote: 0 }
   const activeBalanceError = activeBot.balanceError ?? balanceErrors[activeBot.id] ?? ''
   const activeCreateSummary = createGridSummaries[activeBot.id] ?? { orders: 0, buyOrders: 0, sellOrders: 0, blocked: 0 }
-  const activeGridOrders = gridOrders[activeBot.id] ?? []
+  const activeGridOrders = activeBot.orders ?? gridOrders[activeBot.id] ?? []
   const getBotCountdown = (bot: Bot) => {
     if (!bot.running) return bot.pollIntervalSeconds
     if (!bot.nextRunAt) return bot.pollIntervalSeconds
@@ -799,6 +802,7 @@ function App() {
       }
       updateBot({
         created: true,
+        orders: payload.created ?? [],
         ...(payload.balances ? { balances: payload.balances, balanceError: '' } : {}),
       })
       const message = `${payload.message || 'Grid wurde erstellt'}: ${summary.buyOrders} Buy, ${summary.sellOrders} Sell, ${summary.blocked} blockiert.`
@@ -830,7 +834,7 @@ function App() {
           grids: bot.grids,
           orderSize: bot.orderSize,
           useStartAsset: bot.useStartAsset,
-          knownOrders: gridOrders[bot.id] ?? [],
+          knownOrders: bot.orders ?? gridOrders[bot.id] ?? [],
         }),
       })
       const payload = await readJsonResponse<MonitorResponse>(response, 'Überwachung fehlgeschlagen.')
@@ -852,7 +856,9 @@ function App() {
       if (payload.balances) {
         setAccountBalances((current) => ({ ...current, [bot.id]: payload.balances! }))
         setBalanceErrors((current) => ({ ...current, [bot.id]: '' }))
-        updateBot({ balances: payload.balances, balanceError: '' })
+        updateBot({ balances: payload.balances, balanceError: '', orders: payload.openOrders ?? [] })
+      } else {
+        updateBot({ orders: payload.openOrders ?? [] })
       }
       const createdOrders = payload.created?.length ?? 0
       logDebug(createdOrders ? `Überwachung: ${createdOrders} Orders gesetzt.` : `Überwachung aktualisiert: ${openOrders} offene Orders.`)

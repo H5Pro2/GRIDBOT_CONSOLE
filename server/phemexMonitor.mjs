@@ -116,7 +116,7 @@ export function createPhemexMonitorHandler({
           || hasOpenOrder({ side: 'sell', price: order.targetSellPrice, baseSize: order.baseSize || orderSize }, gridOrders),
         )
       const filledBuyOrders = knownOrders
-        .filter((order) => order.side === 'buy' && order.status !== 'locked')
+        .filter((order) => order.side === 'buy' && !order.status.startsWith('locked'))
         .filter((knownOrder) => !gridOrders.some((openOrder) => sameGridOrder(knownOrder, openOrder)))
         .map((order) => ({
           ...order,

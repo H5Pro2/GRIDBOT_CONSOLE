@@ -33,13 +33,377 @@
       "pollIntervalSeconds": 10,
       "created": true,
       "running": true,
-      "lastRunAt": 1788113198129,
-      "nextRunAt": 1788113208129,
+      "lastRunAt": 1788170349403,
+      "nextRunAt": 1788170359403,
       "balances": {
-        "base": 0.01827099999999998,
-        "quote": 5.45125096999999
+        "base": 0.008279999999999954,
+        "quote": 5.749890970000024
       },
-      "balanceError": ""
+      "balanceError": "",
+      "orders": [
+        {
+          "orderId": "6d0f4202-9ca4-4910-a71f-569beb3edd0b",
+          "clientOrderId": "gb2-monitor-buy-mtgsi4c3-0",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 101.6,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "7c5778f2-b1df-4d7b-8ee7-af9e416fd938",
+          "clientOrderId": "gb2-monitor-buy-mtggsrbe-0",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 100.9,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "2edf4224-8692-4643-a790-6bb765827009",
+          "clientOrderId": "gb2-monitor-sell-mtgde8go-0",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 104.4,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "afedbe69-8d0f-4065-b68a-b72e7a3605f8",
+          "clientOrderId": "gb2-monitor-sell-mtgaoain-0",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 105.1,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "3925553b-fef0-47f7-8420-f64841be44a5",
+          "clientOrderId": "gb2-monitor-sell-mtg9ltjy-0",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 105.8,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "83644303-7b74-4e58-8b58-8010493c3b97",
+          "clientOrderId": "gb2-monitor-sell-mtg7ut3c-0",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 106.5,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "f1fa8120-2a9d-48c0-b887-9aa8fcfae9d8",
+          "clientOrderId": "gb2-monitor-sell-mtcbukbi-0",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 107.9,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "8b4c363e-259c-4945-8a45-fe322f5ededc",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-26",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 100.2,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "02be39ce-897f-452d-8c2a-b5f5b7fe3d1d",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-25",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 99.5,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "50331867-6c3d-4f82-8831-13c3e06665c5",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-24",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 98.8,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "25532087-2497-4ded-a5ac-65d6de37812f",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-23",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 98.1,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "c2a1870c-0961-48f4-9ce8-078e0eae99e9",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-22",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 97.4,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "c889f73a-51ab-4328-bef7-269f3fce8651",
+          "clientOrderId": "gb2-monitor-sell-mtgfiwwl-0",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 103.7,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "aa4f2eaa-a0a5-41f6-a0a4-16e2d41dad64",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-20",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 96,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "f78f6ed0-7d5b-43a2-b89e-46f54912af8c",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-19",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 95.3,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "9135e177-43aa-40b4-bdaa-ea4db4cecdd1",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-18",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 94.6,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "5015147e-75ed-4b0e-95f3-5440d2172d1c",
+          "clientOrderId": "gb2-monitor-sell-mtcay6fy-1",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 108.6,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "4f9273b3-0743-4538-91b3-6a5b2faa9b88",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-17",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 93.9,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "e4362da7-037c-43b7-9481-d1b3235e8031",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-16",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 93.2,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "eba15de6-1042-41a5-a504-8764551a7312",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-15",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 92.5,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "836779e3-b722-4e77-8367-a2c1be622d87",
+          "clientOrderId": "gb2-monitor-buy-mtgwxofm-0",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 102.3,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "cd770986-a536-4b00-8da6-ba06f17c3201",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-14",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 91.8,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "5e3a537f-bd5e-4456-9be8-ec053f857bfe",
+          "clientOrderId": "gb2-monitor-sell-mtcad0t9-0",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 109.3,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "330dc09b-f04d-4073-b3f8-9931bc220520",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-13",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 91.1,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "1ed04d6d-bb00-484e-903f-98d0cb0d3af5",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-12",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 90.4,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "8eb1e9c3-87ff-4b43-8805-07b9ce40c775",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-11",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 89.7,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "3bbca8ae-02b5-4043-a3f8-b32c0917f347",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-10",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 89,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "bd333c12-3466-42ff-b1dc-92c60f4730ab",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-9",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 88.3,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "6a31625e-bc74-4792-a38d-aa2f5807784d",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-8",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 87.6,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "b3bc504d-9bf3-4e5e-a88c-a8b6ca3a2103",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-7",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 86.9,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "60a4e2a9-7d5d-4129-80a1-e4c81ed5ff37",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-6",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 86.2,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "7eeeb32e-1eb8-4612-978a-4d942f76d1cc",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-21",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 96.7,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "15d06b6b-2515-4dcc-84b3-45ddf480e15e",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-5",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 85.5,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "543e5539-87af-418e-b5d5-18784d9d5ca3",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-4",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 84.8,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "463449e2-b5bd-49e8-b481-906ab35281c6",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-3",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 84.1,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "4c50f58b-5c61-436e-96f9-11d6f90d5c98",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-2",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 83.4,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "b47c944e-f5f3-4106-bf14-eecd57b35358",
+          "clientOrderId": "gb2-monitor-sell-mtfy70d6-0",
+          "symbol": "sSOLUSDT",
+          "side": "sell",
+          "price": 107.2,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "f5925a10-5ebf-4c0d-ac43-c2c656e3a8be",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-1",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 82.7,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "22b9a399-3472-4f96-a4b1-d0abb3bd6070",
+          "clientOrderId": "gb2-monitor-buy-mtbaq42r-0",
+          "symbol": "sSOLUSDT",
+          "side": "buy",
+          "price": 82,
+          "baseSize": 0.1
+        },
+        {
+          "orderId": "",
+          "clientOrderId": "gb2-monitor-buy-mtg3ax36-0",
+          "side": "buy",
+          "status": "locked",
+          "price": 105.8,
+          "baseSize": 0.1,
+          "lockedBySellPrice": 106.5,
+          "lockedBySellOrderId": "83644303-7b74-4e58-8b58-8010493c3b97"
+        },
+        {
+          "orderId": "",
+          "clientOrderId": "gb2-monitor-buy-mtfth9fe-0",
+          "side": "buy",
+          "status": "locked",
+          "price": 105.1,
+          "baseSize": 0.1,
+          "lockedBySellPrice": 105.8,
+          "lockedBySellOrderId": "3925553b-fef0-47f7-8420-f64841be44a5"
+        },
+        {
+          "orderId": "",
+          "clientOrderId": "gb2-monitor-buy-mtehpuu4-0",
+          "side": "buy",
+          "status": "locked",
+          "price": 104.4,
+          "baseSize": 0.1,
+          "lockedBySellPrice": 105.1,
+          "lockedBySellOrderId": "afedbe69-8d0f-4065-b68a-b72e7a3605f8"
+        },
+        {
+          "orderId": "",
+          "clientOrderId": "gb2-monitor-buy-mtgbvinq-0",
+          "side": "buy",
+          "status": "locked",
+          "price": 103.7,
+          "baseSize": 0.1,
+          "lockedBySellPrice": 104.4,
+          "lockedBySellOrderId": "2edf4224-8692-4643-a790-6bb765827009"
+        },
+        {
+          "orderId": "",
+          "clientOrderId": "gb2-monitor-buy-mtdf2dxb-0",
+          "side": "buy",
+          "status": "locked",
+          "price": 103,
+          "baseSize": 0.1,
+          "lockedBySellPrice": 103.7,
+          "lockedBySellOrderId": "c889f73a-51ab-4328-bef7-269f3fce8651"
+        }
+      ]
     },
     {
       "id": "e58656d8-fe84-47da-b7b7-c5137a43e33a",
