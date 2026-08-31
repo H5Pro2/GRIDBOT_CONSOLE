@@ -435,6 +435,19 @@ async function loadPhemexOpenOrders({ key, secret, symbol }) {
   return mergeRecentSubmittedOrders(symbol, openOrders)
 }
 
+async function loadPhemexOrderById({ key, secret, symbol, orderId }) {
+  if (!orderId) return undefined
+  const query = new URLSearchParams({
+    symbol,
+    orderID: orderId,
+  }).toString()
+  const payload = await signedPhemexFetch({ method: 'GET', path: '/api-data/spots/orders/by-order-id', query, key, secret })
+  const rows = normalizeRows(payload.data)
+  if (rows.length) return rows[0]
+  if (payload.data && typeof payload.data === 'object') return payload.data
+  return undefined
+}
+
 async function createPhemexLimitOrder({ key, secret, symbol, side, price, baseSize, clientOrderId }) {
   const body = JSON.stringify({
     symbol,
@@ -520,6 +533,7 @@ const handlePhemexMonitor = createPhemexMonitorHandler({
   loadPhemexLastPrice,
   loadPhemexBalance,
   loadPhemexOpenOrders,
+  loadPhemexOrderById,
   createPhemexLimitOrder,
 })
 
