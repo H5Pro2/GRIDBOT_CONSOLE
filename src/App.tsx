@@ -592,7 +592,7 @@ function ChartColorPicker({ value, label, onChange, opacity, opacityLabel, onOpa
           channels[index] = Math.round(Math.max(0, Math.min(255, Number(event.target.value))))
           onChange(`#${channels.map((part) => part.toString(16).padStart(2, '0')).join('')}`)
         }} /></label>)}
-        {opacity !== undefined && onOpacityChange && <label className="chart-alpha">{opacityLabel}<span className="chart-percent"><input aria-label={`${label}: ${opacityLabel}`} type="number" min="0" max="100" step="1" value={Math.round((1 - opacity) * 100)} onChange={(event) => { if (event.target.value !== '') onOpacityChange(1 - Math.min(100, Math.max(0, Number(event.target.value))) / 100) }} /><span>%</span></span></label>}
+        {opacity !== undefined && onOpacityChange && <label className="chart-alpha" title={opacityLabel}>T<span className="chart-percent"><input aria-label={`${label}: ${opacityLabel}`} type="number" min="0" max="100" step="1" value={Math.round((1 - opacity) * 100)} onChange={(event) => { if (event.target.value !== '') onOpacityChange(1 - Math.min(100, Math.max(0, Number(event.target.value))) / 100) }} /><span>%</span></span></label>}
       </div>
       </div>
     </details>
