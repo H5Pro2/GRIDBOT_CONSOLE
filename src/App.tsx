@@ -570,11 +570,13 @@ function mergeIncomingStore(current: Store, incoming: Store): Store {
   return merged
 }
 
-function ChartColorPicker({ value, label, onChange }: { value: string; label: string; onChange: (value: string) => void }) {
+function ChartColorPicker({ value, label, onChange, opacity, opacityLabel, onOpacityChange }: { value: string; label: string; onChange: (value: string) => void; opacity?: number; opacityLabel?: string; onOpacityChange?: (value: number) => void }) {
   const [hex, setHex] = useState(value.toUpperCase())
   useEffect(() => setHex(value.toUpperCase()), [value])
   return (
-    <div className="chart-palette" role="group" aria-label={label}>
+    <details className="chart-palette chart-picker" onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus() } }}>
+      <summary aria-label={label} title={label}><span className="chart-color-preview"><span style={{ backgroundColor: value, opacity: opacity ?? 1 }} /></span><span>{value.toUpperCase()}</span></summary>
+      <div className="chart-picker-panel" role="group" aria-label={label}>
       <div className="chart-custom-color">
         <input type="color" aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
         <input type="text" aria-label={`${label}: Hex`} value={hex} maxLength={7} spellCheck={false} onChange={(event) => {
@@ -583,7 +585,17 @@ function ChartColorPicker({ value, label, onChange }: { value: string; label: st
           if (/^#[0-9A-F]{6}$/.test(next)) onChange(next.toLowerCase())
         }} onBlur={() => setHex(value.toUpperCase())} />
       </div>
-    </div>
+      <div className="chart-rgba">
+        {['R', 'G', 'B'].map((channel, index) => <label key={channel}>{channel}<input aria-label={`${label}: ${channel}`} type="number" min="0" max="255" step="1" value={parseInt(value.slice(1 + index * 2, 3 + index * 2), 16)} onChange={(event) => {
+          if (event.target.value === '') return
+          const channels = [0, 1, 2].map((part) => parseInt(value.slice(1 + part * 2, 3 + part * 2), 16))
+          channels[index] = Math.round(Math.max(0, Math.min(255, Number(event.target.value))))
+          onChange(`#${channels.map((part) => part.toString(16).padStart(2, '0')).join('')}`)
+        }} /></label>)}
+        {opacity !== undefined && onOpacityChange && <label className="chart-alpha">{opacityLabel}<span className="chart-percent"><input aria-label={`${label}: ${opacityLabel}`} type="number" min="0" max="100" step="1" value={Math.round((1 - opacity) * 100)} onChange={(event) => { if (event.target.value !== '') onOpacityChange(1 - Math.min(100, Math.max(0, Number(event.target.value))) / 100) }} /><span>%</span></span></label>}
+      </div>
+      </div>
+    </details>
   )
 }
 
@@ -1206,8 +1218,7 @@ function App() {
               ].map((item) => (
                 <div className="chart-color-row" key={item.key}>
                   <strong>{item.label}</strong>
-                  <ChartColorPicker label={`${item.label}: ${text.color}`} value={chartSettings[item.colorKey as keyof ChartSettings] as string} onChange={(value) => updateChartSettings({ [item.colorKey]: value } as Partial<ChartSettings>)} />
-                  <label className="chart-transparency">{text.opacity}<span className="chart-percent"><input aria-label={`${item.label}: ${text.opacity}`} type="number" min="0" max="100" step="1" value={Math.round((1 - (chartSettings[item.opacityKey as keyof ChartSettings] as number)) * 100)} onChange={(event) => { if (event.target.value !== '') updateChartSettings({ [item.opacityKey]: 1 - Math.min(100, Math.max(0, Number(event.target.value))) / 100 } as Partial<ChartSettings>) }} /><span>%</span></span></label>
+                  <ChartColorPicker label={`${item.label}: ${text.color}`} value={chartSettings[item.colorKey as keyof ChartSettings] as string} onChange={(value) => updateChartSettings({ [item.colorKey]: value } as Partial<ChartSettings>)} opacity={chartSettings[item.opacityKey as keyof ChartSettings] as number} opacityLabel={text.opacity} onOpacityChange={(value) => updateChartSettings({ [item.opacityKey]: value } as Partial<ChartSettings>)} />
                 </div>
               ))}
               {[
