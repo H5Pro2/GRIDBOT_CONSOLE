@@ -194,9 +194,12 @@ export function createPhemexMonitorHandler({
         }))
         .filter((order) => Number.isFinite(order.targetSellPrice))
         .filter((order) =>
-          hasOpenOrder({ side: 'sell', price: order.targetSellPrice, baseSize: order.baseSize || orderSize }, gridOrders)
-          || isFilledOrderStatus(getOrderStatus(lockedStatusByLevel.get(orderLevelKey(order))))
-          || (order.lockedBySellOrderId && !isFilledOrderStatus(getOrderStatus(missingOrderStatusById.get(order.lockedBySellOrderId)))),
+          (order.orderId || order.lockedBySellOrderId)
+          && (
+            hasOpenOrder({ side: 'sell', price: order.targetSellPrice, baseSize: order.baseSize || orderSize }, gridOrders)
+            || isFilledOrderStatus(getOrderStatus(lockedStatusByLevel.get(orderLevelKey(order))))
+            || (order.lockedBySellOrderId && !isFilledOrderStatus(getOrderStatus(missingOrderStatusById.get(order.lockedBySellOrderId))))
+          ),
         )
       const filledBuyOrders = missingKnownOrders
         .filter((order) => order.side === 'buy' && !order.status.startsWith('locked'))
