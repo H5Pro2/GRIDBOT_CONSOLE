@@ -571,17 +571,18 @@ function mergeIncomingStore(current: Store, incoming: Store): Store {
 }
 
 function ChartColorPicker({ value, label, onChange }: { value: string; label: string; onChange: (value: string) => void }) {
+  const [hex, setHex] = useState(value.toUpperCase())
+  useEffect(() => setHex(value.toUpperCase()), [value])
   return (
     <div className="chart-palette" role="group" aria-label={label}>
-      <div className="chart-palette-swatches">
-        {['#22c55e', '#ef4444', '#f59e0b', '#38bdf8', '#a78bfa', '#94a3b8', '#343a46', '#ffffff'].map((color) => (
-          <button key={color} type="button" className="chart-swatch" style={{ backgroundColor: color }} aria-label={`${label}: ${color}`} title={color} aria-pressed={value.toLowerCase() === color} onClick={() => onChange(color)} />
-        ))}
-      </div>
-      <label className="chart-custom-color">
+      <div className="chart-custom-color">
         <input type="color" aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
-        <span>{value.toUpperCase()}</span>
-      </label>
+        <input type="text" aria-label={`${label}: Hex`} value={hex} maxLength={7} spellCheck={false} onChange={(event) => {
+          const next = event.target.value.toUpperCase()
+          setHex(next)
+          if (/^#[0-9A-F]{6}$/.test(next)) onChange(next.toLowerCase())
+        }} onBlur={() => setHex(value.toUpperCase())} />
+      </div>
     </div>
   )
 }

@@ -1023,27 +1023,6 @@ button {
   display: grid;
   gap: 10px;
 }
-.chart-palette-swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-.chart-swatch {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
-  padding: 0;
-  border: 1px solid #ffffff30;
-  border-radius: 4px;
-}
-.chart-swatch[aria-pressed='true'] {
-  outline: 2px solid #e5edf7;
-  outline-offset: 2px;
-}
-.chart-swatch:hover {
-  outline: 2px solid #9ca3af;
-  outline-offset: 2px;
-}
 .chart-color-row .chart-custom-color {
   display: flex;
   align-items: center;
@@ -1052,11 +1031,19 @@ button {
   color: #aeb8c5;
 }
 .chart-custom-color input[type='color'] {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
   padding: 2px;
   border-radius: 4px;
   cursor: pointer;
+}
+.chart-custom-color input[type='text'] {
+  width: 100px;
+  min-width: 0;
+  height: 34px;
+  padding: 6px 8px;
+  font: 12px monospace;
 }
 .chart-transparency {
   font-size: 12px;
