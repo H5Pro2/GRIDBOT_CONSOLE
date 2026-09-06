@@ -150,6 +150,11 @@ h2 {
   font-weight: 800;
 }
 
+.chart-setup-button {
+  font-size: 16px;
+  font-weight: 800;
+}
+
 .exchange-box {
   margin-top: 16px;
   padding-top: 16px;
@@ -979,6 +984,55 @@ button {
   color: #86efac;
   font-size: 13px;
   font-weight: 650;
+}
+
+.chart-setup-drawer {
+  width: min(480px, 100vw);
+}
+
+.chart-toggle {
+  margin-bottom: 16px;
+}
+
+.chart-color-list {
+  display: grid;
+  gap: 12px;
+}
+
+.chart-color-row {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 9px 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #252a33;
+  border-radius: 8px;
+  background: #0f141c;
+}
+
+.chart-color-row strong {
+  grid-column: 1 / -1;
+  color: #e5edf7;
+}
+
+.chart-color-row label {
+  gap: 6px;
+  min-width: 0;
+}
+
+.chart-color-row input[type='color'] {
+  width: 100%;
+  height: 38px;
+  padding: 4px;
+}
+
+.chart-color-row input[type='range'] {
+  height: 38px;
+  padding: 0;
+}
+
+.chart-color-row.compact strong {
+  grid-column: auto;
 }
 
 @media (max-width: 1080px) {

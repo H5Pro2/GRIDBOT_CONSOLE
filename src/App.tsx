@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { MarketChart, type Candle, type ChartInterval } from './MarketChart'
+import { MarketChart, type Candle, type ChartInterval, type ChartSettings } from './MarketChart'
 
 type Exchange = {
   id: string
@@ -42,6 +42,8 @@ type Store = {
   activeBotId: string
   language?: Language
   languageUpdatedAt?: number
+  chartSettings?: ChartSettings
+  chartSettingsUpdatedAt?: number
 }
 
 type DebugEntry = {
@@ -137,6 +139,21 @@ const exchangeTemplates = ['Phemex', 'Binance']
 const minPollIntervalSeconds = 3
 type Language = 'de' | 'en'
 
+const defaultChartSettings: ChartSettings = {
+  buyLineColor: '#22c55e',
+  buyLineOpacity: 0.65,
+  sellLineColor: '#ef4444',
+  sellLineOpacity: 0.65,
+  emptyLineColor: '#94a3b8',
+  emptyLineOpacity: 0.22,
+  lockedLineColor: '#94a3b8',
+  lockedLineOpacity: 0.36,
+  currentPriceColor: '#22c55e',
+  chartTextColor: '#8b949e',
+  chartGridColor: '#343a46',
+  showPriceLevels: false,
+}
+
 const copy = {
   de: {
     globalSetup: 'Globales Setup',
@@ -153,6 +170,7 @@ const copy = {
     noBot: 'Kein Bot ausgewahlt',
     openDebug: 'Debug offnen',
     openSetup: 'Setup offnen',
+    openChartSetup: 'Chart-Setup öffnen',
     botName: 'Bot Name',
     exchange: 'Borse',
     asset: 'Asset',
@@ -207,6 +225,18 @@ const copy = {
     expand: 'Ausklappen',
     collapseMechanic: 'Grid Mechanik einklappen',
     expandMechanic: 'Grid Mechanik ausklappen',
+    chartSetup: 'Chart Setup',
+    closeChartSetup: 'Chart-Setup schließen',
+    showPriceLevels: 'Preis-Level anzeigen',
+    buyLine: 'Buy-Linie',
+    sellLine: 'Sell-Linie',
+    emptyLine: 'Freie Grid-Level',
+    lockedLine: 'Gesperrte Level',
+    currentPrice: 'Aktueller Preis',
+    chartGrid: 'Chart-Gitter',
+    chartText: 'Chart-Schrift',
+    opacity: 'Transparenz',
+    color: 'Farbe',
   },
   en: {
     globalSetup: 'Global Setup',
@@ -223,6 +253,7 @@ const copy = {
     noBot: 'No bot selected',
     openDebug: 'Open debug',
     openSetup: 'Open setup',
+    openChartSetup: 'Open chart setup',
     botName: 'Bot Name',
     exchange: 'Exchange',
     asset: 'Asset',
@@ -277,6 +308,18 @@ const copy = {
     expand: 'Expand',
     collapseMechanic: 'Collapse grid mechanic',
     expandMechanic: 'Expand grid mechanic',
+    chartSetup: 'Chart Setup',
+    closeChartSetup: 'Close chart setup',
+    showPriceLevels: 'Show price levels',
+    buyLine: 'Buy line',
+    sellLine: 'Sell line',
+    emptyLine: 'Open grid levels',
+    lockedLine: 'Locked levels',
+    currentPrice: 'Current price',
+    chartGrid: 'Chart grid',
+    chartText: 'Chart text',
+    opacity: 'Opacity',
+    color: 'Color',
   },
 } as const
 
@@ -312,6 +355,8 @@ const initialStore: Store = {
   activeBotId: '',
   language: 'de',
   languageUpdatedAt: 0,
+  chartSettings: defaultChartSettings,
+  chartSettingsUpdatedAt: 0,
 }
 
 function NumericInput({
@@ -389,6 +434,32 @@ function normalizeLanguage(value: unknown): Language {
   return value === 'en' ? 'en' : 'de'
 }
 
+function normalizeHexColor(value: unknown, fallback: string) {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback
+}
+
+function normalizeOpacity(value: unknown, fallback: number) {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? Math.min(1, Math.max(0, numberValue)) : fallback
+}
+
+function normalizeChartSettings(settings: Partial<ChartSettings> | undefined): ChartSettings {
+  return {
+    buyLineColor: normalizeHexColor(settings?.buyLineColor, defaultChartSettings.buyLineColor),
+    buyLineOpacity: normalizeOpacity(settings?.buyLineOpacity, defaultChartSettings.buyLineOpacity),
+    sellLineColor: normalizeHexColor(settings?.sellLineColor, defaultChartSettings.sellLineColor),
+    sellLineOpacity: normalizeOpacity(settings?.sellLineOpacity, defaultChartSettings.sellLineOpacity),
+    emptyLineColor: normalizeHexColor(settings?.emptyLineColor, defaultChartSettings.emptyLineColor),
+    emptyLineOpacity: normalizeOpacity(settings?.emptyLineOpacity, defaultChartSettings.emptyLineOpacity),
+    lockedLineColor: normalizeHexColor(settings?.lockedLineColor, defaultChartSettings.lockedLineColor),
+    lockedLineOpacity: normalizeOpacity(settings?.lockedLineOpacity, defaultChartSettings.lockedLineOpacity),
+    currentPriceColor: normalizeHexColor(settings?.currentPriceColor, defaultChartSettings.currentPriceColor),
+    chartTextColor: normalizeHexColor(settings?.chartTextColor, defaultChartSettings.chartTextColor),
+    chartGridColor: normalizeHexColor(settings?.chartGridColor, defaultChartSettings.chartGridColor),
+    showPriceLevels: Boolean(settings?.showPriceLevels),
+  }
+}
+
 async function readJsonResponse<T extends { error?: string }>(response: Response, fallbackMessage: string) {
   const payload = await response.json().catch(() => undefined) as T | undefined
   if (!response.ok || payload?.error) throw new Error(payload?.error || fallbackMessage)
@@ -421,6 +492,8 @@ function loadStore(): Store {
       activeBotId: parsed.activeBotId || bots[0].id,
       language: normalizeLanguage(parsed.language ?? localStorage.getItem(languageKey)),
       languageUpdatedAt: Number.isFinite(parsed.languageUpdatedAt) ? parsed.languageUpdatedAt : 0,
+      chartSettings: normalizeChartSettings(parsed.chartSettings),
+      chartSettingsUpdatedAt: Number.isFinite(parsed.chartSettingsUpdatedAt) ? parsed.chartSettingsUpdatedAt : 0,
     }
   } catch {
     return {
@@ -428,6 +501,8 @@ function loadStore(): Store {
       activeBotId: initialStore.bots[0].id,
       language: normalizeLanguage(localStorage.getItem(languageKey)),
       languageUpdatedAt: 0,
+      chartSettings: defaultChartSettings,
+      chartSettingsUpdatedAt: 0,
     }
   }
 }
@@ -454,6 +529,8 @@ function normalizeStore(store: Store): Store {
     activeBotId: store.activeBotId || bots[0].id,
     language: normalizeLanguage(store.language),
     languageUpdatedAt: Number.isFinite(store.languageUpdatedAt) ? store.languageUpdatedAt : 0,
+    chartSettings: normalizeChartSettings(store.chartSettings),
+    chartSettingsUpdatedAt: Number.isFinite(store.chartSettingsUpdatedAt) ? store.chartSettingsUpdatedAt : 0,
   }
 }
 
@@ -476,14 +553,21 @@ function serializePublicStore(store: Store) {
 function mergeIncomingStore(current: Store, incoming: Store): Store {
   const currentLanguageUpdatedAt = Number(current.languageUpdatedAt) || 0
   const incomingLanguageUpdatedAt = Number(incoming.languageUpdatedAt) || 0
+  const currentChartSettingsUpdatedAt = Number(current.chartSettingsUpdatedAt) || 0
+  const incomingChartSettingsUpdatedAt = Number(incoming.chartSettingsUpdatedAt) || 0
+  const merged = { ...incoming }
+
   if (currentLanguageUpdatedAt > incomingLanguageUpdatedAt) {
-    return {
-      ...incoming,
-      language: normalizeLanguage(current.language),
-      languageUpdatedAt: currentLanguageUpdatedAt,
-    }
+    merged.language = normalizeLanguage(current.language)
+    merged.languageUpdatedAt = currentLanguageUpdatedAt
   }
-  return incoming
+
+  if (currentChartSettingsUpdatedAt > incomingChartSettingsUpdatedAt) {
+    merged.chartSettings = normalizeChartSettings(current.chartSettings)
+    merged.chartSettingsUpdatedAt = currentChartSettingsUpdatedAt
+  }
+
+  return merged
 }
 
 function App() {
@@ -494,6 +578,7 @@ function App() {
   const [setupExchangeId, setSetupExchangeId] = useState(() => store.exchanges[0]?.id ?? 'phemex')
   const [mechanicsOpen, setMechanicsOpen] = useState(true)
   const [debugOpen, setDebugOpen] = useState(false)
+  const [chartSetupOpen, setChartSetupOpen] = useState(false)
   const [orderPlanOpen, setOrderPlanOpen] = useState(false)
   const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([])
   const [saveNotice, setSaveNotice] = useState('')
@@ -510,10 +595,19 @@ function App() {
   const setupExchange = store.exchanges.find((exchange) => exchange.id === setupExchangeId) ?? store.exchanges[0]
   const language = normalizeLanguage(store.language)
   const text = copy[language]
+  const chartSettings = useMemo(() => normalizeChartSettings(store.chartSettings), [store.chartSettings])
 
   const setLanguage = (nextLanguage: Language) => {
     setStore((current) => ({ ...current, language: nextLanguage, languageUpdatedAt: Date.now() }))
     localStorage.setItem(languageKey, nextLanguage)
+  }
+
+  const updateChartSettings = (patch: Partial<ChartSettings>) => {
+    setStore((current) => ({
+      ...current,
+      chartSettings: normalizeChartSettings({ ...current.chartSettings, ...patch }),
+      chartSettingsUpdatedAt: Date.now(),
+    }))
   }
 
   useEffect(() => {
@@ -989,6 +1083,7 @@ function App() {
               <button className={language === 'en' ? 'active' : ''} type="button" onClick={() => setLanguage('en')}>EN</button>
               <button className={language === 'de' ? 'active' : ''} type="button" onClick={() => setLanguage('de')}>DE</button>
             </div>
+            <button className="icon-button chart-setup-button" type="button" onClick={() => setChartSetupOpen(true)} aria-label={text.openChartSetup} title={text.chartSetup}>C</button>
             <button className="icon-button debug-button" type="button" onClick={() => setDebugOpen(true)} aria-label={text.openDebug} title="Debug">D</button>
             <button className="icon-button" type="button" onClick={() => setSetupOpen(true)} aria-label={text.openSetup} title="Setup">⚙</button>
           </div>
@@ -1022,6 +1117,7 @@ function App() {
                 candles={chartCandles}
                 interval={chartInterval}
                 onInterval={changeChartInterval}
+                settings={chartSettings}
               />
             </div>
 
@@ -1075,6 +1171,42 @@ function App() {
           </section>
         )}
       </section>
+
+      {chartSetupOpen && (
+        <div className="setup-overlay" role="presentation" onMouseDown={() => setChartSetupOpen(false)}>
+          <section className="setup-drawer chart-setup-drawer" role="dialog" aria-modal="true" aria-labelledby="chart-setup-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="drawer-head">
+              <div><p className="eyebrow">Chart</p><h2 id="chart-setup-title">{text.chartSetup}</h2></div>
+              <button className="icon-button" type="button" onClick={() => setChartSetupOpen(false)} aria-label={text.closeChartSetup} title={text.close}>×</button>
+            </div>
+            <label className="toggle chart-toggle"><input type="checkbox" checked={chartSettings.showPriceLevels} onChange={(event) => updateChartSettings({ showPriceLevels: event.target.checked })} />{text.showPriceLevels}</label>
+            <div className="chart-color-list">
+              {[
+                { key: 'buyLine', label: text.buyLine, colorKey: 'buyLineColor', opacityKey: 'buyLineOpacity' },
+                { key: 'sellLine', label: text.sellLine, colorKey: 'sellLineColor', opacityKey: 'sellLineOpacity' },
+                { key: 'emptyLine', label: text.emptyLine, colorKey: 'emptyLineColor', opacityKey: 'emptyLineOpacity' },
+                { key: 'lockedLine', label: text.lockedLine, colorKey: 'lockedLineColor', opacityKey: 'lockedLineOpacity' },
+              ].map((item) => (
+                <div className="chart-color-row" key={item.key}>
+                  <strong>{item.label}</strong>
+                  <label>{text.color}<input type="color" value={chartSettings[item.colorKey as keyof ChartSettings] as string} onChange={(event) => updateChartSettings({ [item.colorKey]: event.target.value } as Partial<ChartSettings>)} /></label>
+                  <label>{text.opacity}<input type="range" min="0" max="1" step="0.01" value={chartSettings[item.opacityKey as keyof ChartSettings] as number} onChange={(event) => updateChartSettings({ [item.opacityKey]: Number(event.target.value) } as Partial<ChartSettings>)} /></label>
+                </div>
+              ))}
+              {[
+                { key: 'currentPriceColor', label: text.currentPrice, value: chartSettings.currentPriceColor },
+                { key: 'chartGridColor', label: text.chartGrid, value: chartSettings.chartGridColor },
+                { key: 'chartTextColor', label: text.chartText, value: chartSettings.chartTextColor },
+              ].map((item) => (
+                <div className="chart-color-row compact" key={item.key}>
+                  <strong>{item.label}</strong>
+                  <label>{text.color}<input type="color" value={item.value} onChange={(event) => updateChartSettings({ [item.key]: event.target.value } as Partial<ChartSettings>)} /></label>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {setupOpen && (
         <div className="setup-overlay" role="presentation" onMouseDown={() => setSetupOpen(false)}>

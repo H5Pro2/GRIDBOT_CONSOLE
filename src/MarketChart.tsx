@@ -26,6 +26,7 @@ type MarketChartProps = {
   candles: Candle[]
   interval: ChartInterval
   onInterval: (interval: ChartInterval) => void
+  settings: ChartSettings
 }
 
 export type ChartOrderLine = {
@@ -37,6 +38,37 @@ export type ChartOrderLine = {
 
 export const intervals = ['5m', '15m', '1h', '4h', '1d'] as const
 export type ChartInterval = (typeof intervals)[number]
+export type ChartSettings = {
+  buyLineColor: string
+  buyLineOpacity: number
+  sellLineColor: string
+  sellLineOpacity: number
+  emptyLineColor: string
+  emptyLineOpacity: number
+  lockedLineColor: string
+  lockedLineOpacity: number
+  currentPriceColor: string
+  chartTextColor: string
+  chartGridColor: string
+  showPriceLevels: boolean
+}
+
+function clampOpacity(value: number) {
+  return Math.min(1, Math.max(0, Number.isFinite(value) ? value : 1))
+}
+
+function colorWithOpacity(color: string, opacity: number) {
+  const clean = color.trim()
+  if (!/^#[0-9a-f]{6}$/i.test(clean)) return clean
+  const red = Number.parseInt(clean.slice(1, 3), 16)
+  const green = Number.parseInt(clean.slice(3, 5), 16)
+  const blue = Number.parseInt(clean.slice(5, 7), 16)
+  return `rgba(${red}, ${green}, ${blue}, ${clampOpacity(opacity)})`
+}
+
+function formatPriceLevel(price: number) {
+  return price.toLocaleString('de-DE', { maximumFractionDigits: 8 })
+}
 
 export function MarketChart({
   symbol,
@@ -47,6 +79,7 @@ export function MarketChart({
   candles,
   interval,
   onInterval,
+  settings,
 }: MarketChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -62,18 +95,18 @@ export function MarketChart({
       autoSize: true,
       layout: {
         background: { color: 'transparent' },
-        textColor: '#8b949e',
+        textColor: settings.chartTextColor,
       },
       grid: {
-        vertLines: { color: 'rgba(52, 58, 70, 0.38)' },
-        horzLines: { color: 'rgba(52, 58, 70, 0.45)' },
+        vertLines: { color: colorWithOpacity(settings.chartGridColor, 0.38) },
+        horzLines: { color: colorWithOpacity(settings.chartGridColor, 0.45) },
       },
       rightPriceScale: {
-        borderColor: '#343a46',
+        borderColor: settings.chartGridColor,
         autoScale: true,
       },
       timeScale: {
-        borderColor: '#343a46',
+        borderColor: settings.chartGridColor,
         timeVisible: true,
         rightOffset: 8,
         barSpacing: 6,
@@ -100,6 +133,7 @@ export function MarketChart({
       borderDownColor: '#ff7a30',
       wickUpColor: '#22c55e',
       wickDownColor: '#ff7a30',
+      priceLineColor: settings.currentPriceColor,
     })
     series.setData([])
     chartRef.current = chart
@@ -111,6 +145,26 @@ export function MarketChart({
       seriesRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    chartRef.current?.applyOptions({
+      layout: {
+        background: { color: 'transparent' },
+        textColor: settings.chartTextColor,
+      },
+      grid: {
+        vertLines: { color: colorWithOpacity(settings.chartGridColor, 0.38) },
+        horzLines: { color: colorWithOpacity(settings.chartGridColor, 0.45) },
+      },
+      rightPriceScale: {
+        borderColor: settings.chartGridColor,
+      },
+      timeScale: {
+        borderColor: settings.chartGridColor,
+      },
+    })
+    seriesRef.current?.applyOptions({ priceLineColor: settings.currentPriceColor })
+  }, [settings])
 
   useEffect(() => {
     if (!seriesRef.current || !chartRef.current) return
@@ -149,27 +203,27 @@ export function MarketChart({
     const order = orderLineByPrice.get(price.toFixed(8))
     if (!order) {
       return {
-        color: 'rgba(148, 163, 184, 0.22)',
+        color: colorWithOpacity(settings.emptyLineColor, settings.emptyLineOpacity),
         lineStyle: LineStyle.Dashed,
         lineWidth: 1 as const,
       }
     }
     if (order.status?.startsWith('locked')) {
       return {
-        color: 'rgba(148, 163, 184, 0.36)',
+        color: colorWithOpacity(settings.lockedLineColor, settings.lockedLineOpacity),
         lineStyle: LineStyle.Dashed,
         lineWidth: 1 as const,
       }
     }
     if (order.side === 'buy') {
       return {
-        color: 'rgba(34, 197, 94, 0.65)',
+        color: colorWithOpacity(settings.buyLineColor, settings.buyLineOpacity),
         lineStyle: LineStyle.Solid,
         lineWidth: 1 as const,
       }
     }
     return {
-      color: 'rgba(239, 68, 68, 0.65)',
+      color: colorWithOpacity(settings.sellLineColor, settings.sellLineOpacity),
       lineStyle: LineStyle.Solid,
       lineWidth: 1 as const,
     }
@@ -187,11 +241,11 @@ export function MarketChart({
         color: lineOptions.color,
         lineWidth: lineOptions.lineWidth,
         lineStyle: lineOptions.lineStyle,
-        axisLabelVisible: false,
-        title: '',
+        axisLabelVisible: settings.showPriceLevels,
+        title: settings.showPriceLevels ? formatPriceLevel(price) : '',
       })
     })
-  }, [visibleGridLevels, orderLineByPrice])
+  }, [visibleGridLevels, orderLineByPrice, settings])
 
   const zoom = (direction: 'in' | 'out') => {
     const timeScale = chartRef.current?.timeScale()
