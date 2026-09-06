@@ -458,7 +458,7 @@ async function loadPhemexOrderById({ key, secret, symbol, orderId, clientOrderId
   let payload = await signedPhemexFetch({
     method: 'GET',
     path: '/api-data/spots/orders/by-order-id',
-    query: buildQuery('oderId'),
+    query: buildQuery('orderID'),
     key,
     secret,
   })
@@ -467,7 +467,7 @@ async function loadPhemexOrderById({ key, secret, symbol, orderId, clientOrderId
     payload = await signedPhemexFetch({
       method: 'GET',
       path: '/api-data/spots/orders/by-order-id',
-      query: buildQuery('orderID'),
+      query: buildQuery('oderId'),
       key,
       secret,
     })
