@@ -72,8 +72,6 @@ function formatPriceLevel(price: number) {
 
 export function MarketChart({
   symbol,
-  lower,
-  upper,
   gridLevels,
   orderLines,
   candles,
@@ -88,6 +86,9 @@ export function MarketChart({
   const priceDragRef = useRef<{ startY: number; from: number; to: number; height: number } | null>(null)
   const priceScaleDragRef = useRef<{ startY: number; from: number; to: number; height: number } | null>(null)
   const [draggingPrice, setDraggingPrice] = useState(false)
+  const [autoFocus, setAutoFocus] = useState(false)
+  const dataKeyRef = useRef('')
+  const previousCandlesRef = useRef<Candle[]>([])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -110,6 +111,7 @@ export function MarketChart({
         timeVisible: true,
         rightOffset: 8,
         barSpacing: 6,
+        shiftVisibleRangeOnNewBar: false,
       },
       handleScroll: {
         mouseWheel: true,
@@ -168,14 +170,33 @@ export function MarketChart({
 
   useEffect(() => {
     if (!seriesRef.current || !chartRef.current) return
-    seriesRef.current.setData(candles)
-    if (candles.length > 0) chartRef.current.timeScale().fitContent()
-  }, [candles])
-
-  useEffect(() => {
-    if (!seriesRef.current) return
-    seriesRef.current.priceScale().applyOptions({ autoScale: true })
-  }, [lower, upper])
+    const series = seriesRef.current
+    const timeScale = chartRef.current.timeScale()
+    const key = `${symbol}:${interval}`
+    const firstLoad = dataKeyRef.current !== key && candles.length > 0
+    const range = timeScale.getVisibleLogicalRange()
+    const priceRange = series.priceScale().getVisibleRange()
+    const previous = previousCandlesRef.current
+    series.setData(candles)
+    if (firstLoad) {
+      timeScale.fitContent()
+      series.priceScale().setAutoScale(true)
+      dataKeyRef.current = key
+    } else if (autoFocus) {
+      timeScale.scrollToRealTime()
+      series.priceScale().setAutoScale(true)
+    } else {
+      if (range && candles.length > 0) {
+        // Keep the same candles on screen when the rolling history window moves.
+        const anchorIndex = previous.findIndex((candle) => candle.time === candles[0].time)
+        const reverseIndex = candles.findIndex((candle) => candle.time === previous[0]?.time)
+        const offset = anchorIndex >= 0 ? -anchorIndex : Math.max(0, reverseIndex)
+        timeScale.setVisibleLogicalRange({ from: range.from + offset, to: range.to + offset })
+      }
+      if (priceRange) series.priceScale().setVisibleRange(priceRange)
+    }
+    previousCandlesRef.current = candles
+  }, [candles, symbol, interval, autoFocus])
 
   const visibleGridLevels = useMemo(() => gridLevels.filter(Number.isFinite).slice(0, 80), [gridLevels])
   const orderLineByPrice = useMemo(() => {
@@ -357,6 +378,7 @@ export function MarketChart({
             <button type="button" onClick={() => zoom('in')}>+</button>
             <button type="button" onClick={() => pan('right')}>›</button>
           </div>
+          <button className={`autofocus-button${autoFocus ? ' active' : ''}`} type="button" aria-label="Autofokus" title="Autofokus" aria-pressed={autoFocus} onClick={() => setAutoFocus((current) => !current)}>A</button>
         </div>
       </div>
       <div
