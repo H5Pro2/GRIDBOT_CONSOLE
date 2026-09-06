@@ -990,6 +990,7 @@ function App() {
                 lower={activeBot.lower}
                 upper={activeBot.upper}
                 gridLevels={gridLevels}
+                orderLines={activeGridOrders}
                 candles={chartCandles}
                 interval={chartInterval}
                 onInterval={changeChartInterval}

@@ -22,9 +22,17 @@ type MarketChartProps = {
   lower: number
   upper: number
   gridLevels: number[]
+  orderLines: ChartOrderLine[]
   candles: Candle[]
   interval: ChartInterval
   onInterval: (interval: ChartInterval) => void
+}
+
+export type ChartOrderLine = {
+  side: 'buy' | 'sell'
+  price: number
+  status?: string
+  lockedBySellPrice?: number
 }
 
 export const intervals = ['5m', '15m', '1h', '4h', '1d'] as const
@@ -35,6 +43,7 @@ export function MarketChart({
   lower,
   upper,
   gridLevels,
+  orderLines,
   candles,
   interval,
   onInterval,
@@ -115,22 +124,74 @@ export function MarketChart({
   }, [lower, upper])
 
   const visibleGridLevels = useMemo(() => gridLevels.filter(Number.isFinite).slice(0, 80), [gridLevels])
+  const orderLineByPrice = useMemo(() => {
+    const lines = new Map<string, ChartOrderLine>()
+    const setLine = (price: number, line: ChartOrderLine) => {
+      if (!Number.isFinite(price)) return
+      const key = price.toFixed(8)
+      const current = lines.get(key)
+      if (!current || current.status?.startsWith('locked') || line.side === 'sell') {
+        lines.set(key, { ...line, price })
+      }
+    }
+
+    for (const order of orderLines) {
+      setLine(order.price, order)
+      if (order.status?.startsWith('locked') && Number.isFinite(order.lockedBySellPrice)) {
+        setLine(order.lockedBySellPrice!, { side: 'sell', price: order.lockedBySellPrice!, status: 'locked-target' })
+      }
+    }
+
+    return lines
+  }, [orderLines])
+
+  const getGridLineOptions = (price: number) => {
+    const order = orderLineByPrice.get(price.toFixed(8))
+    if (!order) {
+      return {
+        color: 'rgba(148, 163, 184, 0.24)',
+        lineStyle: LineStyle.Dashed,
+        lineWidth: 1 as const,
+      }
+    }
+    if (order.status?.startsWith('locked')) {
+      return {
+        color: 'rgba(245, 158, 11, 0.72)',
+        lineStyle: LineStyle.Dashed,
+        lineWidth: 1 as const,
+      }
+    }
+    if (order.side === 'buy') {
+      return {
+        color: 'rgba(34, 197, 94, 0.82)',
+        lineStyle: LineStyle.Solid,
+        lineWidth: 2 as const,
+      }
+    }
+    return {
+      color: 'rgba(239, 68, 68, 0.82)',
+      lineStyle: LineStyle.Solid,
+      lineWidth: 2 as const,
+    }
+  }
+
   useEffect(() => {
     if (!seriesRef.current) return
     for (const line of gridLineRefs.current) {
       seriesRef.current.removePriceLine(line)
     }
-    gridLineRefs.current = visibleGridLevels.map((price) =>
-      seriesRef.current!.createPriceLine({
+    gridLineRefs.current = visibleGridLevels.map((price) => {
+      const lineOptions = getGridLineOptions(price)
+      return seriesRef.current!.createPriceLine({
         price,
-        color: 'rgba(255, 122, 48, 0.42)',
-        lineWidth: 1,
-        lineStyle: LineStyle.Solid,
+        color: lineOptions.color,
+        lineWidth: lineOptions.lineWidth,
+        lineStyle: lineOptions.lineStyle,
         axisLabelVisible: false,
         title: '',
-      }),
-    )
-  }, [visibleGridLevels])
+      })
+    })
+  }, [visibleGridLevels, orderLineByPrice])
 
   const zoom = (direction: 'in' | 'out') => {
     const timeScale = chartRef.current?.timeScale()
