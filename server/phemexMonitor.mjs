@@ -228,7 +228,7 @@ export function createPhemexMonitorHandler({
         missingOrders: levels
           .slice(0, -1)
           .filter((price) => price < livePrice)
-          .sort((left, right) => left - right)
+          .sort((left, right) => right - left)
           .map((price) => buildGridOrder({ side: 'buy', price, orderSize }))
           .filter((order) => !hasOpenOrder(order, gridOrders))
           .filter((order) => !hasOpenOrder({ side: 'sell', price: order.price, baseSize: order.baseSize }, gridOrders))
@@ -341,7 +341,7 @@ export function createPhemexMonitorHandler({
       const sellOrdersAfterCreate = [...gridOrders, ...created].filter((order) => order.side === 'sell')
       const lockedOrders = lockedBuyCycles
         .map((order) => ({
-          orderId: '',
+          orderId: order.orderId,
           clientOrderId: order.clientOrderId,
           side: 'buy',
           status: hasOpenOrder({ side: 'sell', price: order.targetSellPrice, baseSize: order.baseSize || orderSize }, sellOrdersAfterCreate)
