@@ -1060,7 +1060,7 @@ button {
 }
 .chart-rgba {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 48px)) minmax(0, 64px);
+  grid-template-columns: repeat(4, minmax(0, 48px));
   gap: 6px;
   margin-top: 8px;
 }
