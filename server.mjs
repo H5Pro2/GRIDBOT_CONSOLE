@@ -273,6 +273,7 @@ async function signedPhemexFetch({ method = 'GET', path, query = '', body = '', 
   const text = await response.text()
   const payload = text.trim() ? JSON.parse(text) : undefined
   if (!payload) throw new Error(`Phemex leere Antwort ${response.status} fuer ${path}.`)
+  if (response.ok && payload.code === undefined) return { data: payload }
   if (!response.ok || payload.code !== 0) throw new Error(payload.msg || `Phemex Fehler ${payload.code ?? response.status}`)
   return payload
 }
@@ -435,14 +436,32 @@ async function loadPhemexOpenOrders({ key, secret, symbol }) {
   return mergeRecentSubmittedOrders(symbol, openOrders)
 }
 
-async function loadPhemexOrderById({ key, secret, symbol, orderId }) {
-  if (!orderId) return undefined
-  const query = new URLSearchParams({
+async function loadPhemexOrderById({ key, secret, symbol, orderId, clientOrderId }) {
+  if (!orderId && !clientOrderId) return undefined
+  const buildQuery = (orderIdKey) => new URLSearchParams({
     symbol,
-    orderID: orderId,
+    ...(orderId ? { [orderIdKey]: orderId } : {}),
+    ...(clientOrderId ? { clOrdID: clientOrderId } : {}),
   }).toString()
-  const payload = await signedPhemexFetch({ method: 'GET', path: '/api-data/spots/orders/by-order-id', query, key, secret })
-  const rows = normalizeRows(payload.data)
+
+  let payload = await signedPhemexFetch({
+    method: 'GET',
+    path: '/api-data/spots/orders/by-order-id',
+    query: buildQuery('orderID'),
+    key,
+    secret,
+  })
+  let rows = normalizeRows(payload.data)
+  if (!rows.length && orderId) {
+    payload = await signedPhemexFetch({
+      method: 'GET',
+      path: '/api-data/spots/orders/by-order-id',
+      query: buildQuery('oderId'),
+      key,
+      secret,
+    })
+    rows = normalizeRows(payload.data)
+  }
   if (rows.length) return rows[0]
   if (payload.data && typeof payload.data === 'object') return payload.data
   return undefined

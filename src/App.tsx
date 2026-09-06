@@ -105,6 +105,23 @@ type MonitorResponse = {
   openOrders?: GridOrder[]
   created?: GridOrder[]
   blocked?: unknown[]
+  debugSummary?: {
+    livePrice: number
+    openOrders: number
+    knownOrders: number
+    locked: number
+    missingKnownOrders: number
+    unresolved: number
+    created: number
+    blocked: number
+  }
+  debug?: Array<{
+    type?: string
+    side?: 'buy' | 'sell'
+    price?: number
+    status?: string
+    reason?: string
+  }>
 }
 
 type CreateGridSummary = {
@@ -861,7 +878,18 @@ function App() {
         updateBot({ orders: payload.openOrders ?? [] })
       }
       const createdOrders = payload.created?.length ?? 0
-      logDebug(createdOrders ? `Überwachung: ${createdOrders} Orders gesetzt.` : `Überwachung aktualisiert: ${openOrders} offene Orders.`)
+      if (payload.debugSummary) {
+        const summary = payload.debugSummary
+        logDebug(`Prüfung: Preis ${summary.livePrice.toLocaleString('de-DE', { maximumFractionDigits: 8 })}, offen ${summary.openOrders}, bekannt ${summary.knownOrders}, gesperrt ${summary.locked}, unklar ${summary.unresolved}, gesetzt ${summary.created}, blockiert ${summary.blocked}.`)
+      } else {
+        logDebug(createdOrders ? `Überwachung: ${createdOrders} Orders gesetzt.` : `Überwachung aktualisiert: ${openOrders} offene Orders.`)
+      }
+      for (const entry of (payload.debug ?? []).slice(0, 8)) {
+        const side = entry.side ? entry.side.toUpperCase() : 'Level'
+        const price = Number.isFinite(entry.price) ? ` ${entry.price!.toLocaleString('de-DE', { maximumFractionDigits: 8 })}` : ''
+        const status = entry.status ? ` Status ${entry.status}.` : ''
+        logDebug(`${side}${price}: ${entry.reason ?? 'geprüft.'}${status}`)
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Überwachung fehlgeschlagen.'
       setSpotStatus(message)

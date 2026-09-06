@@ -37,9 +37,26 @@ function getOrderStatus(order) {
   return String(order?.ordStatus || order?.orderStatus || order?.status || '')
 }
 
+function orderLevelKey(order) {
+  return [
+    order.side,
+    Number(order.price).toFixed(8),
+    Number(order.lockedBySellPrice || 0).toFixed(8),
+  ].join('|')
+}
+
+function dedupeOrdersByLevel(orders) {
+  const levels = new Map()
+  for (const order of orders) {
+    const key = orderLevelKey(order)
+    if (!levels.has(key)) levels.set(key, order)
+  }
+  return [...levels.values()]
+}
+
 function normalizeKnownOrders(orders) {
   if (!Array.isArray(orders)) return []
-  return orders
+  return dedupeOrdersByLevel(orders
     .map((order) => ({
       orderId: String(order?.orderId || ''),
       clientOrderId: String(order?.clientOrderId || ''),
@@ -50,7 +67,7 @@ function normalizeKnownOrders(orders) {
       price: Number(order?.price),
       baseSize: Number(order?.baseSize),
     }))
-    .filter((order) => (order.side === 'buy' || order.side === 'sell') && Number.isFinite(order.price) && order.price > 0)
+    .filter((order) => (order.side === 'buy' || order.side === 'sell') && Number.isFinite(order.price) && order.price > 0))
 }
 
 function buildGridLevels({ lower, upper, grids }) {
@@ -96,6 +113,7 @@ export function createPhemexMonitorHandler({
       const orderSize = Number(body.orderSize)
       const useStartAsset = Boolean(body.useStartAsset)
       const knownOrders = normalizeKnownOrders(body.knownOrders)
+      const debug = []
 
       if (!key || !secret) throw new Error('Phemex Key und Secret fehlen.')
       if (!baseAsset || !quoteAsset || !displaySymbol) throw new Error('Asset und Quote eintragen.')
@@ -122,8 +140,21 @@ export function createPhemexMonitorHandler({
       )
       const statusEntries = await Promise.all(missingKnownOrders.map(async (order) => {
         try {
-          return [order.orderId, await loadPhemexOrderById({ key, secret, symbol, orderId: order.orderId })]
-        } catch {
+          return [order.orderId, await loadPhemexOrderById({
+            key,
+            secret,
+            symbol,
+            orderId: order.orderId,
+            clientOrderId: order.clientOrderId,
+          })]
+        } catch (error) {
+          debug.push({
+            type: 'status-error',
+            side: order.side,
+            price: order.price,
+            orderId: order.orderId,
+            reason: error instanceof Error ? error.message : 'Phemex Status konnte nicht gelesen werden.',
+          })
           return [order.orderId, undefined]
         }
       }))
@@ -156,6 +187,15 @@ export function createPhemexMonitorHandler({
           const status = getOrderStatus(missingOrderStatusById.get(order.orderId))
           return !isFilledOrderStatus(status) && !isCanceledOrderStatus(status)
         })
+      for (const order of unresolvedBuyOrders) {
+        debug.push({
+          type: 'buy-blocked',
+          side: order.side,
+          price: order.price,
+          status: getOrderStatus(missingOrderStatusById.get(order.orderId)) || 'unbekannt',
+          reason: 'Buy nicht nachgesetzt: Status der verschwundenen Order ist nicht Filled.',
+        })
+      }
       const lockedBuyCycles = [...existingLockedCycles, ...filledBuyOrders]
 
       const buyOrderBlock = {
@@ -198,10 +238,12 @@ export function createPhemexMonitorHandler({
         const order = missingBuyOrders[index]
         if (Math.abs(livePrice - order.price) < minimumPriceDistance) {
           blocked.push({ side: order.side, price: order.price, reason: 'Hold: Preis zu nah am Live-Preis.' })
+          debug.push({ type: 'buy-blocked', side: order.side, price: order.price, reason: 'Preis zu nah am Live-Preis.' })
           continue
         }
         if (quoteBalance - buyOrderBlock.reservedQuote + 0.00000001 < order.quoteSize) {
           blocked.push({ side: order.side, price: order.price, reason: 'Quote-Guthaben reicht nicht.' })
+          debug.push({ type: 'buy-blocked', side: order.side, price: order.price, reason: 'Quote-Guthaben reicht nicht.' })
           continue
         }
 
@@ -217,6 +259,7 @@ export function createPhemexMonitorHandler({
           clientOrderId,
         })
         buyOrderBlock.reservedQuote += order.quoteSize
+        debug.push({ type: 'buy-created', side: order.side, price: order.price, reason: 'Buy-Order gesetzt.' })
         created.push({
           orderId: String(createdOrder.orderID ?? createdOrder.orderId ?? createdOrder.id ?? ''),
           side: order.side,
@@ -238,10 +281,12 @@ export function createPhemexMonitorHandler({
         const order = missingSellOrders[index]
         if (Math.abs(livePrice - order.price) < minimumPriceDistance) {
           blocked.push({ side: order.side, price: order.price, reason: 'Hold: Preis zu nah am Live-Preis.' })
+          debug.push({ type: 'sell-blocked', side: order.side, price: order.price, reason: 'Preis zu nah am Live-Preis.' })
           continue
         }
         if (baseBalance - sellOrderBlock.reservedBase + 0.00000001 < order.baseSize) {
           blocked.push({ side: order.side, price: order.price, reason: 'Asset-Guthaben reicht nicht.' })
+          debug.push({ type: 'sell-blocked', side: order.side, price: order.price, reason: 'Asset-Guthaben reicht nicht.' })
           continue
         }
 
@@ -257,6 +302,7 @@ export function createPhemexMonitorHandler({
           clientOrderId,
         })
         sellOrderBlock.reservedBase += order.baseSize
+        debug.push({ type: 'sell-created', side: order.side, price: order.price, reason: 'Sell-Order gesetzt.' })
         created.push({
           orderId: String(createdOrder.orderID ?? createdOrder.orderId ?? createdOrder.id ?? ''),
           side: order.side,
@@ -286,6 +332,16 @@ export function createPhemexMonitorHandler({
           )?.orderId ?? '',
         }))
       const currentOrders = [...gridOrders, ...created, ...lockedOrders]
+      const debugSummary = {
+        livePrice,
+        openOrders: gridOrders.length,
+        knownOrders: knownOrders.length,
+        locked: lockedOrders.length,
+        missingKnownOrders: missingKnownOrders.length,
+        unresolved: unresolvedBuyOrders.length,
+        created: created.length,
+        blocked: blocked.length,
+      }
 
       sendJson(response, 200, {
         message: 'Überwachung aktualisiert',
@@ -295,6 +351,8 @@ export function createPhemexMonitorHandler({
         openOrders: currentOrders,
         created,
         blocked,
+        debugSummary,
+        debug,
         buyOrders: currentOrders.filter((order) => order.side === 'buy').length,
         sellOrders: currentOrders.filter((order) => order.side === 'sell').length,
       })
