@@ -138,6 +138,11 @@ export function createPhemexMonitorHandler({
         && !knownOrder.status.startsWith('locked')
         && !gridOrders.some((openOrder) => sameGridOrder(knownOrder, openOrder)),
       )
+      const knownLockedOrders = knownOrders.filter((order) =>
+        order.side === 'buy'
+        && (order.status === 'locked' || order.status === 'locked-pending')
+        && !hasOpenOrder({ side: 'sell', price: order.lockedBySellPrice, baseSize: order.baseSize || orderSize }, gridOrders),
+      )
       const statusEntries = await Promise.all(missingKnownOrders.map(async (order) => {
         try {
           return [order.orderId, await loadPhemexOrderById({
@@ -159,6 +164,26 @@ export function createPhemexMonitorHandler({
         }
       }))
       const missingOrderStatusById = new Map(statusEntries)
+      const lockedStatusEntries = await Promise.all(knownLockedOrders.map(async (order) => {
+        try {
+          return [orderLevelKey(order), await loadPhemexOrderById({
+            key,
+            secret,
+            symbol,
+            orderId: order.orderId,
+            clientOrderId: order.clientOrderId,
+          })]
+        } catch (error) {
+          debug.push({
+            type: 'status-error',
+            side: order.side,
+            price: order.price,
+            reason: error instanceof Error ? error.message : 'Phemex Sperrstatus konnte nicht gelesen werden.',
+          })
+          return [orderLevelKey(order), undefined]
+        }
+      }))
+      const lockedStatusByLevel = new Map(lockedStatusEntries)
       const existingLockedCycles = knownOrders
         .filter((order) => order.side === 'buy' && (order.status === 'locked' || order.status === 'locked-pending'))
         .map((order) => ({
@@ -169,8 +194,8 @@ export function createPhemexMonitorHandler({
         }))
         .filter((order) => Number.isFinite(order.targetSellPrice))
         .filter((order) =>
-          order.status === 'locked-pending'
-          || hasOpenOrder({ side: 'sell', price: order.targetSellPrice, baseSize: order.baseSize || orderSize }, gridOrders)
+          hasOpenOrder({ side: 'sell', price: order.targetSellPrice, baseSize: order.baseSize || orderSize }, gridOrders)
+          || isFilledOrderStatus(getOrderStatus(lockedStatusByLevel.get(orderLevelKey(order))))
           || (order.lockedBySellOrderId && !isFilledOrderStatus(getOrderStatus(missingOrderStatusById.get(order.lockedBySellOrderId)))),
         )
       const filledBuyOrders = missingKnownOrders
