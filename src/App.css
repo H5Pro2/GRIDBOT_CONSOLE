@@ -996,23 +996,22 @@ button {
 
 .chart-color-list {
   display: grid;
-  gap: 12px;
+  gap: 0;
 }
 
 .chart-color-row {
   display: grid;
-  grid-template-columns: 1fr 96px;
-  gap: 9px 12px;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 10px 20px;
   align-items: end;
-  padding: 12px;
-  border: 1px solid #252a33;
-  border-radius: 8px;
-  background: #0f141c;
+  padding: 16px 0;
+  border-top: 1px solid #303640;
 }
 
 .chart-color-row strong {
   grid-column: 1 / -1;
   color: #e5edf7;
+  font-size: 14px;
 }
 
 .chart-color-row label {
@@ -1020,19 +1019,71 @@ button {
   min-width: 0;
 }
 
-.chart-color-row input[type='color'] {
-  width: 100%;
-  height: 38px;
-  padding: 4px;
+.chart-palette {
+  display: grid;
+  gap: 10px;
 }
-
-.chart-color-row input[type='range'] {
-  height: 38px;
+.chart-palette-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.chart-swatch {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
   padding: 0;
+  border: 1px solid #ffffff30;
+  border-radius: 4px;
+}
+.chart-swatch[aria-pressed='true'] {
+  outline: 2px solid #e5edf7;
+  outline-offset: 2px;
+}
+.chart-swatch:hover {
+  outline: 2px solid #9ca3af;
+  outline-offset: 2px;
+}
+.chart-color-row .chart-custom-color {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font: 12px monospace;
+  color: #aeb8c5;
+}
+.chart-custom-color input[type='color'] {
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.chart-transparency {
+  font-size: 12px;
+  align-self: end;
+}
+.chart-percent {
+  display: flex;
+  align-items: center;
+  border: 1px solid #39424f;
+  background: #0d1219;
+  border-radius: 5px;
+  padding-right: 10px;
+}
+.chart-percent input[type='number'] {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  padding: 6px 8px;
 }
 
 .chart-color-row.compact strong {
-  grid-column: auto;
+  grid-column: 1 / -1;
+}
+.chart-color-row.compact .chart-palette {
+  grid-column: 1 / -1;
 }
 
 @media (max-width: 1080px) {

@@ -318,7 +318,7 @@ const copy = {
     currentPrice: 'Current price',
     chartGrid: 'Chart grid',
     chartText: 'Chart text',
-    opacity: 'Opacity',
+    opacity: 'Transparency',
     color: 'Color',
   },
 } as const
@@ -568,6 +568,22 @@ function mergeIncomingStore(current: Store, incoming: Store): Store {
   }
 
   return merged
+}
+
+function ChartColorPicker({ value, label, onChange }: { value: string; label: string; onChange: (value: string) => void }) {
+  return (
+    <div className="chart-palette" role="group" aria-label={label}>
+      <div className="chart-palette-swatches">
+        {['#22c55e', '#ef4444', '#f59e0b', '#38bdf8', '#a78bfa', '#94a3b8', '#343a46', '#ffffff'].map((color) => (
+          <button key={color} type="button" className="chart-swatch" style={{ backgroundColor: color }} aria-label={`${label}: ${color}`} title={color} aria-pressed={value.toLowerCase() === color} onClick={() => onChange(color)} />
+        ))}
+      </div>
+      <label className="chart-custom-color">
+        <input type="color" aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
+        <span>{value.toUpperCase()}</span>
+      </label>
+    </div>
+  )
 }
 
 function App() {
@@ -1189,8 +1205,8 @@ function App() {
               ].map((item) => (
                 <div className="chart-color-row" key={item.key}>
                   <strong>{item.label}</strong>
-                  <label>{text.color}<input type="color" value={chartSettings[item.colorKey as keyof ChartSettings] as string} onChange={(event) => updateChartSettings({ [item.colorKey]: event.target.value } as Partial<ChartSettings>)} /></label>
-                  <label>{text.opacity}<input type="range" min="0" max="1" step="0.01" value={chartSettings[item.opacityKey as keyof ChartSettings] as number} onChange={(event) => updateChartSettings({ [item.opacityKey]: Number(event.target.value) } as Partial<ChartSettings>)} /></label>
+                  <ChartColorPicker label={`${item.label}: ${text.color}`} value={chartSettings[item.colorKey as keyof ChartSettings] as string} onChange={(value) => updateChartSettings({ [item.colorKey]: value } as Partial<ChartSettings>)} />
+                  <label className="chart-transparency">{text.opacity}<span className="chart-percent"><input aria-label={`${item.label}: ${text.opacity}`} type="number" min="0" max="100" step="1" value={Math.round((1 - (chartSettings[item.opacityKey as keyof ChartSettings] as number)) * 100)} onChange={(event) => { if (event.target.value !== '') updateChartSettings({ [item.opacityKey]: 1 - Math.min(100, Math.max(0, Number(event.target.value))) / 100 } as Partial<ChartSettings>) }} /><span>%</span></span></label>
                 </div>
               ))}
               {[
@@ -1200,7 +1216,7 @@ function App() {
               ].map((item) => (
                 <div className="chart-color-row compact" key={item.key}>
                   <strong>{item.label}</strong>
-                  <label>{text.color}<input type="color" value={item.value} onChange={(event) => updateChartSettings({ [item.key]: event.target.value } as Partial<ChartSettings>)} /></label>
+                  <ChartColorPicker label={`${item.label}: ${text.color}`} value={item.value} onChange={(value) => updateChartSettings({ [item.key]: value } as Partial<ChartSettings>)} />
                 </div>
               ))}
             </div>
