@@ -184,6 +184,18 @@ export function createPhemexMonitorHandler({
         }
       }))
       const lockedStatusByLevel = new Map(lockedStatusEntries)
+      const sellStatusById = new Map(await Promise.all(knownLockedOrders
+        .filter((order) => order.lockedBySellOrderId)
+        .map(async (order) => {
+          const id = order.lockedBySellOrderId
+          if (missingOrderStatusById.has(id)) return [id, missingOrderStatusById.get(id)]
+          try {
+            return [id, await loadPhemexOrderById({ key, secret, symbol, orderId: id })]
+          } catch (error) {
+            debug.push({ type: 'status-error', side: 'sell', price: order.lockedBySellPrice, orderId: id, reason: error instanceof Error ? error.message : 'Sell-Status unbekannt.' })
+            return [id, undefined]
+          }
+        })))
       const existingLockedCycles = knownOrders
         .filter((order) => order.side === 'buy' && (order.status === 'locked' || order.status === 'locked-pending'))
         .map((order) => ({
@@ -193,6 +205,7 @@ export function createPhemexMonitorHandler({
             : findNextGridLevel(order.price, levels),
         }))
         .filter((order) => Number.isFinite(order.targetSellPrice))
+        .filter((order) => !isFilledOrderStatus(getOrderStatus(sellStatusById.get(order.lockedBySellOrderId))))
         .filter((order) =>
           (order.orderId || order.lockedBySellOrderId)
           && (
@@ -357,7 +370,7 @@ export function createPhemexMonitorHandler({
             sellOrder.side === 'sell'
             && Math.abs(sellOrder.price - order.targetSellPrice) <= 0.0001
             && (sellOrder.baseSize <= 0 || Math.abs(sellOrder.baseSize - (order.baseSize || orderSize)) <= 0.00000001),
-          )?.orderId ?? '',
+          )?.orderId ?? order.lockedBySellOrderId ?? '',
         }))
       const currentOrders = [...gridOrders, ...created, ...lockedOrders]
       const debugSummary = {

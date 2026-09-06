@@ -205,7 +205,9 @@ export function MarketChart({
       if (!Number.isFinite(price)) return
       const key = price.toFixed(8)
       const current = lines.get(key)
-      if (!current || current.status?.startsWith('locked') || line.side === 'sell') {
+      const currentLocked = current?.status?.startsWith('locked') ?? false
+      const incomingLocked = line.status?.startsWith('locked') ?? false
+      if (!current || (currentLocked && !incomingLocked) || (currentLocked === incomingLocked && line.side === 'sell')) {
         lines.set(key, { ...line, price })
       }
     }
