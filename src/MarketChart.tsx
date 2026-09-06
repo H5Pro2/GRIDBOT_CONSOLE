@@ -149,29 +149,29 @@ export function MarketChart({
     const order = orderLineByPrice.get(price.toFixed(8))
     if (!order) {
       return {
-        color: 'rgba(148, 163, 184, 0.24)',
+        color: 'rgba(148, 163, 184, 0.16)',
         lineStyle: LineStyle.Dashed,
         lineWidth: 1 as const,
       }
     }
     if (order.status?.startsWith('locked')) {
       return {
-        color: 'rgba(245, 158, 11, 0.72)',
+        color: 'rgba(148, 163, 184, 0.28)',
         lineStyle: LineStyle.Dashed,
         lineWidth: 1 as const,
       }
     }
     if (order.side === 'buy') {
       return {
-        color: 'rgba(34, 197, 94, 0.82)',
+        color: 'rgba(34, 197, 94, 0.38)',
         lineStyle: LineStyle.Solid,
-        lineWidth: 2 as const,
+        lineWidth: 1 as const,
       }
     }
     return {
-      color: 'rgba(239, 68, 68, 0.82)',
+      color: 'rgba(239, 68, 68, 0.38)',
       lineStyle: LineStyle.Solid,
-      lineWidth: 2 as const,
+      lineWidth: 1 as const,
     }
   }
 
