@@ -163,13 +163,13 @@ export function MarketChart({
     }
     if (order.side === 'buy') {
       return {
-        color: 'rgba(34, 197, 94, 0.50)',
+        color: 'rgba(34, 197, 94, 0.65)',
         lineStyle: LineStyle.Solid,
         lineWidth: 1 as const,
       }
     }
     return {
-      color: 'rgba(239, 68, 68, 0.50)',
+      color: 'rgba(239, 68, 68, 0.65)',
       lineStyle: LineStyle.Solid,
       lineWidth: 1 as const,
     }
