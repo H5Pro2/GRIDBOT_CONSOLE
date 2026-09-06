@@ -150,6 +150,17 @@ async function handleSaveStore(request, response) {
     currentStore = {}
   }
   const currentLanguageUpdatedAt = Number(currentStore.languageUpdatedAt) || 0
+  // A stale browser snapshot must not erase a known sale reference for the same buy cycle.
+  for (const bot of body.bots ?? []) {
+    const previousBot = currentStore.bots?.find((item) => item.id === bot.id)
+    for (const order of bot.orders ?? []) {
+      if (!order.orderId || !order.status?.startsWith('locked') || order.lockedBySellOrderId) continue
+      const previous = previousBot?.orders?.find((item) => item.orderId === order.orderId
+        && item.side === order.side && item.price === order.price
+        && item.lockedBySellPrice === order.lockedBySellPrice)
+      if (previous?.lockedBySellOrderId) order.lockedBySellOrderId = previous.lockedBySellOrderId
+    }
+  }
   const nextLanguageUpdatedAt = Number(body.languageUpdatedAt) || 0
   if (currentLanguageUpdatedAt > nextLanguageUpdatedAt) {
     body.language = currentStore.language
@@ -447,7 +458,7 @@ async function loadPhemexOrderById({ key, secret, symbol, orderId, clientOrderId
   let payload = await signedPhemexFetch({
     method: 'GET',
     path: '/api-data/spots/orders/by-order-id',
-    query: buildQuery('orderID'),
+    query: buildQuery('oderId'),
     key,
     secret,
   })
@@ -456,7 +467,7 @@ async function loadPhemexOrderById({ key, secret, symbol, orderId, clientOrderId
     payload = await signedPhemexFetch({
       method: 'GET',
       path: '/api-data/spots/orders/by-order-id',
-      query: buildQuery('oderId'),
+      query: buildQuery('orderID'),
       key,
       secret,
     })
