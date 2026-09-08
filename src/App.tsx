@@ -83,6 +83,7 @@ type GridOrder = {
 }
 
 type CreateGridResponse = {
+  openOrders?: GridOrder[]
   error?: string
   message?: string
   balances?: {
@@ -924,10 +925,12 @@ function App() {
           grids: bot.grids,
           orderSize: bot.orderSize,
           useStartAsset: bot.useStartAsset,
+          knownOrders: bot.orders ?? gridOrders[bot.id] ?? [],
         }),
       })
       const payload = await readJsonResponse<CreateGridResponse>(response, 'Grid konnte nicht erstellt werden.')
-      const createdOrders = payload.created?.length ?? 0
+      const currentOrders = payload.openOrders ?? payload.created ?? []
+      const createdOrders = currentOrders.length
       const summary = {
         orders: createdOrders,
         buyOrders: payload.buyOrders ?? 0,
@@ -935,14 +938,14 @@ function App() {
         blocked: payload.blocked?.length ?? 0,
       }
       setCreateGridSummaries((current) => ({ ...current, [bot.id]: summary }))
-      setGridOrders((current) => ({ ...current, [bot.id]: payload.created ?? [] }))
+      setGridOrders((current) => ({ ...current, [bot.id]: currentOrders }))
       if (payload.balances) {
         setAccountBalances((current) => ({ ...current, [bot.id]: payload.balances! }))
         setBalanceErrors((current) => ({ ...current, [bot.id]: '' }))
       }
       updateBot({
         created: true,
-        orders: payload.created ?? [],
+        orders: currentOrders,
         ...(payload.balances ? { balances: payload.balances, balanceError: '' } : {}),
       })
       const message = `${payload.message || 'Grid wurde erstellt'}: ${summary.buyOrders} Buy, ${summary.sellOrders} Sell, ${summary.blocked} blockiert.`

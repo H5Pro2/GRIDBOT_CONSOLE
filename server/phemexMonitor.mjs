@@ -88,6 +88,7 @@ function buildGridOrder({ side, price, orderSize }) {
 }
 
 export function createPhemexMonitorHandler({
+  mode = 'monitor',
   readRequestJson,
   sendJson,
   sleep,
@@ -260,7 +261,7 @@ export function createPhemexMonitorHandler({
         missingOrders: levels
           .slice(0, -1)
           .filter((price) => price < livePrice)
-          .sort((left, right) => right - left)
+          .sort((left, right) => mode === 'create' ? left - right : right - left)
           .map((price) => buildGridOrder({ side: 'buy', price, orderSize }))
           .filter((order) => !hasOpenOrder(order, gridOrders))
           .filter((order) => !hasOpenOrder({ side: 'sell', price: order.price, baseSize: order.baseSize }, gridOrders))
@@ -294,7 +295,9 @@ export function createPhemexMonitorHandler({
       const missingBuyOrders = buyOrderBlock.missingOrders
       for (let index = 0; index < missingBuyOrders.length; index += 1) {
         const order = missingBuyOrders[index]
-        if (Math.abs(livePrice - order.price) < minimumPriceDistance) {
+        if (created.length > 0) await sleep(600)
+        const currentBuyPrice = await loadPhemexLastPrice({ symbol })
+        if (!Number.isFinite(currentBuyPrice) || currentBuyPrice <= 0 || currentBuyPrice - order.price < minimumPriceDistance) {
           blocked.push({ side: order.side, price: order.price, reason: 'Hold: Preis zu nah am Live-Preis.' })
           debug.push({ type: 'buy-blocked', side: order.side, price: order.price, reason: 'Preis zu nah am Live-Preis.' })
           continue
@@ -306,7 +309,6 @@ export function createPhemexMonitorHandler({
         }
 
         const clientOrderId = normalizeClientOrderId(`gb2-monitor-buy-${createIdSeed}-${index}`)
-        if (created.length > 0) await sleep(600)
         const createdOrder = await createPhemexLimitOrder({
           key,
           secret,
@@ -337,6 +339,7 @@ export function createPhemexMonitorHandler({
       ]
       for (let index = 0; index < missingSellOrders.length; index += 1) {
         const order = missingSellOrders[index]
+        if (!Number.isFinite(order.sourceBuyPrice) && [...openOrders, ...created].some((existing) => existing.side === 'buy' && Math.abs(existing.price - (order.price - gridSpacing)) <= 0.0001)) continue
         if (created.length > 0) await sleep(600)
         const currentSellPrice = await loadPhemexLastPrice({ symbol })
         if (!Number.isFinite(currentSellPrice) || currentSellPrice <= 0 || order.price - currentSellPrice < minimumPriceDistance) {
@@ -391,6 +394,14 @@ export function createPhemexMonitorHandler({
           )?.orderId ?? order.lockedBySellOrderId ?? '',
         }))
       const currentOrders = [...gridOrders, ...created, ...lockedOrders]
+      for (const sell of sellOrdersAfterCreate) {
+        if (lockedOrders.some((lock) => lock.lockedBySellOrderId === sell.orderId || Math.abs(lock.lockedBySellPrice - sell.price) <= 0.0001)) continue
+        const index = levels.findIndex((price) => Math.abs(price - sell.price) <= 0.0001)
+        if (index <= 0 || !sell.orderId) continue
+        const buyPrice = levels[index - 1]
+        if (currentOrders.some((order) => order.side === 'buy' && Math.abs(order.price - buyPrice) <= 0.0001)) continue
+        currentOrders.push({ side: 'buy', price: buyPrice, baseSize: sell.baseSize || orderSize, status: 'locked', lockedBySellPrice: sell.price, lockedBySellOrderId: sell.orderId })
+      }
       const debugSummary = {
         livePrice,
         openOrders: gridOrders.length,
@@ -403,7 +414,7 @@ export function createPhemexMonitorHandler({
       }
 
       sendJson(response, 200, {
-        message: 'Überwachung aktualisiert',
+        message: mode === 'create' ? 'Grid wurde abgeglichen und ergänzt' : 'Überwachung aktualisiert',
         symbol,
         livePrice,
         balances: { base: baseBalance, quote: quoteBalance },

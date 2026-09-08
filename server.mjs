@@ -518,6 +518,7 @@ const handlePhemexCreateGrid = createPhemexCreateGridHandler({
   loadPhemexLastPrice,
   loadPhemexBalance,
   loadPhemexOpenOrders,
+  loadPhemexOrderById,
   createPhemexLimitOrder,
 })
 
