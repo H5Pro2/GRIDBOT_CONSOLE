@@ -238,6 +238,22 @@ export function createPhemexMonitorHandler({
         })
       }
       const lockedBuyCycles = [...existingLockedCycles, ...filledBuyOrders]
+      for (const cycle of lockedBuyCycles) {
+        if (hasOpenOrder({ side: 'sell', price: cycle.targetSellPrice, baseSize: cycle.baseSize || orderSize }, gridOrders)) continue
+        const previousSellStatus = getOrderStatus(sellStatusById.get(cycle.lockedBySellOrderId))
+        cycle.sellUnresolved = Boolean(cycle.lockedBySellOrderId && !isCanceledOrderStatus(previousSellStatus))
+        if (cycle.sellUnresolved || cycle.targetSellPrice > livePrice) continue
+        const higherTarget = levels.find((price) => price > cycle.targetSellPrice
+          && price - livePrice >= minimumPriceDistance
+          && !openOrders.some((order) => Math.abs(order.price - price) <= 0.0001)
+          && !lockedBuyCycles.some((other) => other !== cycle
+            && (Math.abs(other.targetSellPrice - price) <= 0.0001 || Math.abs(other.price - price) <= 0.0001)))
+        if (higherTarget !== undefined) {
+          debug.push({ type: 'sell-retargeted', side: 'sell', price: higherTarget, reason: `Sell-Ziel von ${cycle.targetSellPrice} auf ${higherTarget} angehoben; Kaufbereich ${cycle.price} bleibt gesperrt.` })
+          cycle.targetSellPrice = higherTarget
+          cycle.lockedBySellOrderId = ''
+        }
+      }
 
       const buyOrderBlock = {
         reservedQuote: 0,
@@ -256,6 +272,7 @@ export function createPhemexMonitorHandler({
       const sellOrderBlock = {
         reservedBase: 0,
         filledBuyTargets: lockedBuyCycles
+          .filter((order) => !order.sellUnresolved)
           .map((order) => ({
             ...buildGridOrder({ side: 'sell', price: order.targetSellPrice, orderSize: order.baseSize || orderSize }),
             sourceBuyPrice: order.price,
@@ -265,7 +282,7 @@ export function createPhemexMonitorHandler({
           ? levels
             .slice(1)
             .filter((price) => price > livePrice)
-            .filter((price) => !lockedBuyCycles.some((order) => Math.abs(order.price - price) <= 0.0001))
+            .filter((price) => !lockedBuyCycles.some((order) => Math.abs(order.price - price) <= 0.0001 || Math.abs(order.targetSellPrice - price) <= 0.0001))
             .sort((left, right) => left - right)
             .map((price) => buildGridOrder({ side: 'sell', price, orderSize }))
             .filter((order) => !hasOpenOrder(order, gridOrders))
@@ -320,9 +337,11 @@ export function createPhemexMonitorHandler({
       ]
       for (let index = 0; index < missingSellOrders.length; index += 1) {
         const order = missingSellOrders[index]
-        if (Math.abs(livePrice - order.price) < minimumPriceDistance) {
-          blocked.push({ side: order.side, price: order.price, reason: 'Hold: Preis zu nah am Live-Preis.' })
-          debug.push({ type: 'sell-blocked', side: order.side, price: order.price, reason: 'Preis zu nah am Live-Preis.' })
+        if (created.length > 0) await sleep(600)
+        const currentSellPrice = await loadPhemexLastPrice({ symbol })
+        if (!Number.isFinite(currentSellPrice) || currentSellPrice <= 0 || order.price - currentSellPrice < minimumPriceDistance) {
+          blocked.push({ side: order.side, price: order.price, reason: 'Hold: Sell-Ziel liegt unter oder zu nah am aktuellen Preis.' })
+          debug.push({ type: 'sell-blocked', side: order.side, price: order.price, reason: 'Sell-Ziel liegt unter oder zu nah am aktuellen Preis.' })
           continue
         }
         if (baseBalance - sellOrderBlock.reservedBase + 0.00000001 < order.baseSize) {
@@ -332,7 +351,6 @@ export function createPhemexMonitorHandler({
         }
 
         const clientOrderId = normalizeClientOrderId(`gb2-monitor-sell-${createIdSeed}-${index}`)
-        if (created.length > 0) await sleep(600)
         const createdOrder = await createPhemexLimitOrder({
           key,
           secret,
