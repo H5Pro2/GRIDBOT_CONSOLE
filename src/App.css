@@ -59,6 +59,58 @@ h2 {
   border-bottom: 1px solid #252a33;
 }
 
+.program-head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.program-head-top .eyebrow { margin: 0; }
+.quit-button {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #8b949e;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.quit-button:hover { color: #f1f5f9; background: #252a33; }
+.quit-button:focus-visible { outline: 2px solid #71b7ff; outline-offset: 2px; }
+.quit-dialog {
+  width: min(400px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 24px;
+  border: 1px solid #39424e;
+  border-radius: 8px;
+  background: #171c24;
+  color: #d7dde6;
+}
+.quit-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.quit-dialog h2 { font-size: 20px; line-height: 1.35; }
+.quit-dialog p { font-size: 14px; line-height: 1.5; }
+.quit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.quit-actions button {
+  min-width: 72px;
+  min-height: 38px;
+  padding: 8px 16px;
+  border: 1px solid #39424e;
+  border-radius: 4px;
+  color: #d7dde6;
+  background: #10151d;
+  cursor: pointer;
+}
+.quit-actions button:focus-visible { outline: 2px solid #71b7ff; outline-offset: 2px; }
+.quit-actions button:disabled { opacity: 0.5; cursor: wait; }
+.quit-actions .quit-confirm { border-color: #b94a50; color: #ffb5b8; background: #3a2027; }
+.quit-error { color: #ffb5b8; }
+.console-stopped { min-height: 100vh; display: grid; align-content: center; justify-items: center; background: #0b0f16; color: #d7dde6; }
+
 .sidebar-bots {
   display: grid;
   gap: 16px;

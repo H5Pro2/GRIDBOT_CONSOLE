@@ -5,6 +5,7 @@ import { dirname, extname, join, normalize } from 'node:path'
 import { createPhemexCreateGridHandler } from './server/phemexCreateGrid.mjs'
 import { createPhemexMonitorHandler } from './server/phemexMonitor.mjs'
 import { createOrderSizeReconciler, createReplacementJournal } from './server/orderSizeReconciliation.mjs'
+import { createShutdownController } from './server/shutdown.mjs'
 
 const port = Number(process.env.PORT || 5174)
 const candleLimit = 200
@@ -612,7 +613,15 @@ async function serveStatic(request, response) {
   }
 }
 
-const server = createServer(async (request, response) => {
+const dispatch = createShutdownController({
+  sendJson,
+  stop: () => server.close(() => {
+    if (process.send) process.send({ type: 'gridbot-shutdown' }, () => process.exit(0))
+    else process.exit(0)
+  }),
+})
+
+const server = createServer((request, response) => dispatch(request, response, async () => {
   try {
     const url = new URL(request.url ?? '/', `http://${request.headers.host}`)
     if (request.method === 'GET' && url.pathname === '/api/store') {
@@ -650,12 +659,12 @@ const server = createServer(async (request, response) => {
     logServerError(`[request] ${request.method || 'UNKNOWN'} ${request.url || '/'}`, error)
     sendJson(response, 500, { error: error instanceof Error ? error.message : 'Unbekannter Fehler' })
   }
-})
+}))
 
 server.on('error', (error) => {
   logServerError('[server]', error)
 })
 
 server.listen(port, () => {
-  console.log(`Gridbot Menu 2 server listening on http://127.0.0.1:${port}`)
+  console.log(`Gridbot Console server listening on http://127.0.0.1:${server.address().port}`)
 })

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import { ShutdownButton } from './ShutdownButton'
 import { MarketChart, type Candle, type ChartInterval, type ChartSettings } from './MarketChart'
 
 type Exchange = {
@@ -600,7 +601,7 @@ function ChartColorPicker({ value, label, onChange, opacity, opacityLabel, onOpa
   )
 }
 
-function App() {
+function App({ onShutdown }: { onShutdown: () => void }) {
   const [store, setStore] = useState<Store>(() => loadStore())
   const lastServerStoreRef = useRef('')
   const [serverStoreLoaded, setServerStoreLoaded] = useState(false)
@@ -1063,7 +1064,10 @@ function App() {
     <main className="app-shell">
       <aside className="setup-panel">
         <div className="program-head">
-          <p className="eyebrow">{text.globalSetup}</p>
+          <div className="program-head-top">
+            <p className="eyebrow">{text.globalSetup}</p>
+            <ShutdownButton english={store.language === 'en'} onShutdown={onShutdown} />
+          </div>
           <h1>{text.appTitle}</h1>
           <p className="subline">{text.subline}</p>
         </div>
@@ -1315,4 +1319,9 @@ function App() {
   )
 }
 
-export default App
+export default function GridbotConsole() {
+  const [stopped, setStopped] = useState(false)
+  return stopped
+    ? <main className="console-stopped"><h1>Gridbot Console</h1><p role="status">Beendet / Stopped</p></main>
+    : <App onShutdown={() => setStopped(true)} />
+}

@@ -12,10 +12,15 @@ let apiRestartTimer = null
 function startProcess(name, command, args) {
   const child = spawn(command, args, {
     cwd: root,
-    stdio: 'inherit',
+    stdio: name === 'api' ? ['inherit', 'inherit', 'inherit', 'ipc'] : 'inherit',
     windowsHide: false,
   })
   children.add(child)
+  if (name === 'api') {
+    child.on('message', (message) => {
+      if (message?.type === 'gridbot-shutdown') stopAll()
+    })
+  }
   child.on('exit', (code, signal) => {
     children.delete(child)
     if (stopping) return

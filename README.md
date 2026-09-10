@@ -77,6 +77,10 @@ Unter Windows kann die Anwendung auch über diese Datei gestartet werden:
 start-gridbot-menu.bat
 ```
 
+## Beenden
+
+Das X rechts neben „Globales Setup“ öffnet die Sicherheitsabfrage zum Beenden der Gridbot Console. „Nein“ schließt die Abfrage. „Ja“ wartet auf laufende Prüfungen und beendet das Backend sowie den über die BAT-Datei gestarteten Webserver. Offene Börsenorders bleiben bestehen. Der Browser zeigt anschließend „Beendet / Stopped“.
+
 ## Build
 
 ```bash
@@ -105,4 +109,3 @@ PHEMEX_PASSPHRASE=
 - Sell-Abholung und Freigabe
 - Doppelorder-Blockierung
 - Testplan
-
