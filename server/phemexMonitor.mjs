@@ -1,3 +1,5 @@
+import { filledSize } from './orderSizeReconciliation.mjs'
+
 function isGridBotOrder(order) {
   return String(order.clientOrderId || '').startsWith('gb2-')
 }
@@ -245,8 +247,8 @@ export function createPhemexMonitorHandler({
         .filter((order) => isFilledOrderStatus(getOrderStatus(missingOrderStatusById.get(order.orderId))))
         .map((order) => ({
           ...order,
-          baseSize: Number(missingOrderStatusById.get(order.orderId)?.cumBaseQtyEv) > 0
-            ? Number(missingOrderStatusById.get(order.orderId).cumBaseQtyEv) / 100000000
+          baseSize: filledSize(missingOrderStatusById.get(order.orderId)) > 0
+            ? filledSize(missingOrderStatusById.get(order.orderId))
             : Number(missingOrderStatusById.get(order.orderId)?.baseQtyEv) > 0
               ? Number(missingOrderStatusById.get(order.orderId).baseQtyEv) / 100000000
               : order.baseSize,

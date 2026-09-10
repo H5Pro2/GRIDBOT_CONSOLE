@@ -3,13 +3,13 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { createOrderSizeReconciler, createReplacementJournal } from '../server/orderSizeReconciliation.mjs'
+import { createOrderSizeReconciler, createReplacementJournal, filledSize } from '../server/orderSizeReconciliation.mjs'
 import { createPhemexMonitorHandler } from '../server/phemexMonitor.mjs'
 import { createPhemexCreateGridHandler } from '../server/phemexCreateGrid.mjs'
 
 function fixture({ side = 'buy', size = 0.05, funds = 100, afterFunds,
   status = 'New', filled = 0, cancelStatus = 'Canceled', cancelFilled = 0,
-  failCancel = false, failCreate = false, price = 105, exactSize = size } = {}) {
+  failCancel = false, failCreate = false, price = 105, exactSize = size, historyFields = false } = {}) {
   const source = { orderId: 'original', clientOrderId: 'manual', side, price: side === 'buy' ? 100 : 110, baseSize: size }
   let pending = null
   let canceled = false
@@ -30,7 +30,8 @@ function fixture({ side = 'buy', size = 0.05, funds = 100, afterFunds,
       if (clientOrderId) return replacement
       return { orderID: source.orderId, ordStatus: canceled ? cancelStatus : status,
         ordType: 'Limit', side, priceEp: source.price * 1e8,
-        baseQtyEv: exactSize * 1e8, cumBaseQtyEv: (canceled ? cancelFilled : filled) * 1e8 }
+        baseQtyEv: String(exactSize * 1e8),
+        [historyFields ? 'cumBaseValueEv' : 'cumBaseQtyEv']: (canceled ? cancelFilled : filled) * 1e8 }
     },
     cancelPhemexOrder: async () => {
       calls.push(['cancel'])
@@ -214,4 +215,38 @@ test('uncertain cancel remains journaled if funds subsequently disappear', async
   assert.equal((await f.run()).handled, true)
   assert.equal(f.pending().cancelRequested, true)
   assert.equal(f.calls.some(([type]) => type === 'create'), false)
+})
+
+for (const side of ['buy', 'sell']) {
+  test(`Phemex history schema permits replacing ${side} 0.08 with 0.1`, async () => {
+    const f = fixture({ side, size: 0.08, historyFields: true })
+    const result = await f.run()
+    assert.equal(f.calls.filter(([type]) => type === 'cancel').length, 1)
+    assert.equal(result.created.length, 1)
+    assert.equal(result.created[0].baseSize, 0.1)
+    assert.equal(result.created[0].price, f.source.price)
+  })
+}
+
+test('history partial fill prevents cancellation', async () => {
+  const f = fixture({ size: 0.08, historyFields: true, filled: 0.01 })
+  await f.run()
+  assert.equal(f.calls.some(([type]) => type === 'cancel' || type === 'create'), false)
+})
+
+test('history partial fill during cancellation prevents replacement', async () => {
+  const f = fixture({ size: 0.08, historyFields: true, cancelFilled: 0.01 })
+  assert.equal((await f.run()).handled, true)
+  assert.equal(f.calls.some(([type]) => type === 'create'), false)
+})
+
+test('execution quantities accept both documented schemas and keep unknown data unsafe', () => {
+  assert.equal(filledSize({ cumBaseValueEv: 0 }), 0)
+  assert.equal(filledSize({ cumBaseQtyEv: '8000000' }), 0.08)
+  assert.equal(filledSize({ cumBaseValueEv: '8000000' }), 0.08)
+  for (const row of [{}, { cumBaseValueEv: null }, { cumBaseValueEv: '' },
+    { cumBaseValueEv: ' ' }, { cumBaseValueEv: false }, { cumBaseValueEv: -1 },
+    { cumBaseValueEv: 'invalid' }, { cumBaseQtyEv: 0, cumBaseValueEv: 1000000 }]) {
+    assert.ok(Number.isNaN(filledSize(row)))
+  }
 })

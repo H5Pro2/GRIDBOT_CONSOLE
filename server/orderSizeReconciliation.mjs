@@ -11,10 +11,18 @@ const unchangedLimit = (exact, source) => String(exact?.ordType).toLowerCase() =
   && Math.abs(Number(exact?.priceEp) / 1e8 - source.price) <= 0.0001
 
 export function filledSize(order) {
-  const value = order?.cumBaseQtyEv
-  if (value !== undefined && value !== null && value !== '') return Number(value) / 1e8
-  const filled = order?.filledSize
-  return filled !== undefined && filled !== null ? Number(filled) : NaN
+  // Open orders use QtyEv; the by-order-id history endpoint uses ValueEv.
+  const quantities = []
+  for (const [field, scale] of [['cumBaseQtyEv', 1e8], ['cumBaseValueEv', 1e8], ['filledSize', 1]]) {
+    const value = order?.[field]
+    if (value === undefined || value === null || value === '') continue
+    if (!['number', 'string'].includes(typeof value) || String(value).trim() === '') return NaN
+    const quantity = Number(value) / scale
+    if (!Number.isFinite(quantity) || quantity < 0) return NaN
+    quantities.push(quantity)
+  }
+  if (!quantities.length || quantities.some((quantity) => Math.abs(quantity - quantities[0]) > epsilon)) return NaN
+  return quantities[0]
 }
 
 export function createReplacementJournal(directory) {
@@ -96,7 +104,7 @@ export function createOrderSizeReconciler({ journal, loadPhemexOrderById, loadPh
         }
         const exact = await loadPhemexOrderById({ ...auth, orderId: source.orderId })
         if (idOf(exact) !== source.orderId || statusOf(exact) !== 'new' || filledSize(exact) !== 0) {
-          note(source, 'Teilfüllung oder unklarer Orderstatus: bestehende Order bleibt unverändert.')
+          note(source, `Teilfüllung oder unklarer Orderstatus (${statusOf(exact) || 'unbekannt'}, ausgeführt: ${Number.isFinite(filledSize(exact)) ? filledSize(exact) : 'nicht eindeutig'}): bestehende Order bleibt unverändert.`)
           continue
         }
         const exactSize = Number(exact.baseQtyEv) / 1e8
