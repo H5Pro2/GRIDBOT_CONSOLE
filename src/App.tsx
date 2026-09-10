@@ -158,7 +158,7 @@ const defaultChartSettings: ChartSettings = {
 const copy = {
   de: {
     globalSetup: 'Globales Setup',
-    appTitle: 'Gridbot Menu',
+    appTitle: 'Gridbot Konsole',
     subline: 'Bots anlegen, Grid-Mechaniken konfigurieren und Borsen-Zugange im Setup-Menü verwalten.',
     botMenu: 'Bot Menu',
     bots: 'Bots',
@@ -241,7 +241,7 @@ const copy = {
   },
   en: {
     globalSetup: 'Global Setup',
-    appTitle: 'Gridbot Menu',
+    appTitle: 'Gridbot Konsole',
     subline: 'Create bots, configure grid mechanics and manage exchange access in setup.',
     botMenu: 'Bot Menu',
     bots: 'Bots',
