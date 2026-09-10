@@ -4,6 +4,7 @@ import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize } from 'node:path'
 import { createPhemexCreateGridHandler } from './server/phemexCreateGrid.mjs'
 import { createPhemexMonitorHandler } from './server/phemexMonitor.mjs'
+import { createOrderSizeReconciler, createReplacementJournal } from './server/orderSizeReconciliation.mjs'
 
 const port = Number(process.env.PORT || 5174)
 const candleLimit = 200
@@ -82,6 +83,8 @@ function mergeRecentSubmittedOrders(symbol, openOrders) {
   const recentOrders = []
   for (const order of recentSubmittedOrders.values()) {
     if (String(order.symbol || '').toUpperCase() !== String(symbol || '').toUpperCase()) continue
+    if (openOrders.some((existing) => existing.orderId === order.orderId
+      || (existing.side === order.side && Math.abs(existing.price - order.price) <= 0.0001))) continue
     const key = normalizeOrderKey(order)
     if (existingKeys.has(key)) continue
     recentOrders.push({
@@ -478,6 +481,18 @@ async function loadPhemexOrderById({ key, secret, symbol, orderId, clientOrderId
   return undefined
 }
 
+async function cancelPhemexOrder({ key, secret, symbol, orderId }) {
+  if (!orderId) throw new Error('Order-ID für Stornierung fehlt.')
+  const query = new URLSearchParams({ symbol, orderID: orderId }).toString()
+  const payload = await signedPhemexFetch({ method: 'DELETE', path: '/spot/orders', query, key, secret })
+  const result = payload.data ?? payload.result ?? {}
+  if (Number(result.bizError ?? 0) !== 0) throw new Error(result.bizErrorMsg || `Phemex bizError ${result.bizError}`)
+  for (const [cacheKey, order] of recentSubmittedOrders) {
+    if (order.symbol === symbol && order.orderId === orderId) recentSubmittedOrders.delete(cacheKey)
+  }
+  return result
+}
+
 async function createPhemexLimitOrder({ key, secret, symbol, side, price, baseSize, clientOrderId }) {
   const body = JSON.stringify({
     symbol,
@@ -509,7 +524,14 @@ async function createPhemexLimitOrder({ key, secret, symbol, side, price, baseSi
   return result
 }
 
+const reconcileOrderSizes = createOrderSizeReconciler({
+  journal: createReplacementJournal(join(process.cwd(), 'data', 'order-size-replacements')),
+  loadPhemexOrderById, loadPhemexOpenOrders, loadPhemexBalance, loadPhemexLastPrice,
+  cancelPhemexOrder, createPhemexLimitOrder,
+})
+
 const handlePhemexCreateGrid = createPhemexCreateGridHandler({
+  reconcileOrderSizes,
   readRequestJson,
   sendJson,
   sleep,
@@ -556,6 +578,7 @@ async function handlePhemexSnapshot(request, response) {
 }
 
 const handlePhemexMonitor = createPhemexMonitorHandler({
+  reconcileOrderSizes,
   readRequestJson,
   sendJson,
   sleep,

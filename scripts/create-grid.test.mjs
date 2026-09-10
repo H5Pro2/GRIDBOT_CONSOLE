@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createPhemexCreateGridHandler } from '../server/phemexCreateGrid.mjs'
 
-async function run({ start = false, asset = 0, quote = 100, orders = [], known = [], status = 'Filled' } = {}) {
+async function run({ start = false, asset = 0, quote = 100, orders = [], known = [], status = 'Filled', statusFields = {} } = {}) {
   let result
   const created = []
   const handler = createPhemexCreateGridHandler({
@@ -12,7 +12,7 @@ async function run({ start = false, asset = 0, quote = 100, orders = [], known =
     loadPhemexLastPrice: async () => 105,
     loadPhemexBalance: async ({ currency }) => currency === 'SOL' ? asset : quote,
     loadPhemexOpenOrders: async () => orders,
-    loadPhemexOrderById: async () => ({ ordStatus: status }),
+    loadPhemexOrderById: async () => ({ ordStatus: status, ...statusFields }),
     createPhemexLimitOrder: async (order) => { created.push(order); return { orderID: `new-${created.length}` } },
   })
   await handler({}, {})
@@ -44,4 +44,29 @@ test('filled bot buy can sell without start-asset permission', async () => {
 test('unknown buy status does not permit repurchase', async () => {
   const { created } = await run({ known: [{ orderId: 'unknown', side: 'buy', price: 100, baseSize: 0.1 }], status: '' })
   assert.equal(created.some((order) => order.price === 100), false)
+})
+
+for (const size of [0.1, 0.2]) {
+  test(`occupied buy and sell levels stay occupied with quantity ${size}`, async () => {
+    const orders = [{ orderId: 'buy', clientOrderId: 'gb2-buy', side: 'buy', price: 90, baseSize: size }, { orderId: 'sell', clientOrderId: 'gb2-sell', side: 'sell', price: 110, baseSize: size }]
+    const { result, created } = await run({ orders, known: orders.map((order) => ({ ...order, baseSize: 0.1 })), asset: 1, start: true })
+    assert.equal(created.some((order) => order.price === 90 || order.price === 100 || order.price === 110), false)
+    assert.equal(result.openOrders.find((order) => order.orderId === 'buy')?.baseSize, size)
+    assert.equal(result.debug.some((entry) => entry.type === 'size-mismatch'), size < 0.1)
+  })
+}
+
+test('manual orders without bot prefix also block duplicate placements', async () => {
+  const { created } = await run({ orders: [{ orderId: 'manual', side: 'buy', price: 100, baseSize: 0.2 }] })
+  assert.equal(created.some((order) => order.price === 100), false)
+})
+
+test('larger filled buy uses the exchange quantity for its follow-up sell', async () => {
+  const { created } = await run({ asset: 0.2, quote: 0,
+    known: [{ orderId: 'larger-buy', side: 'buy', price: 100, baseSize: 0.1 }],
+    statusFields: { cumBaseQtyEv: 20000000 } })
+  assert.equal(created.length, 1)
+  assert.equal(created[0].side, 'sell')
+  assert.equal(created[0].price, 110)
+  assert.equal(created[0].baseSize, 0.2)
 })
