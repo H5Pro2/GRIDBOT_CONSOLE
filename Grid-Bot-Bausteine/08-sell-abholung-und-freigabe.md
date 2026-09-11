@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Wenn eine Sell-Order verkauft wurde, wird das zugehoerige Buy-Level wieder freigegeben.
+Nach bestätigter Sell-Ausführung wird der zugehörige Kaufzyklus abgeschlossen. Neue Buy-Orders werden unabhängig davon nach den aktuellen Börsenorders, freien USDT und dem Preisabstand geprüft.
 
 ## Eingaben
 
@@ -15,20 +15,20 @@ Wenn eine Sell-Order verkauft wurde, wird das zugehoerige Buy-Level wieder freig
 
 - Sell-Order war vorher bekannt.
 - Sell-Order ist nicht mehr offen.
-- Quote-Guthaben ist vorhanden.
+- Phemex bestätigt diese Sell-Order als `Filled`; Guthaben allein ist kein Nachweis.
 - Sell-Order gehoert zu einem gesperrten Buy-Level.
 
 ## Aktion
 
-- Buy-Level freigeben.
+- Zugehörigen Kaufzyklus abschließen.
 - Neue Buy-Order auf diesem Level pruefen.
 
 ## Ausgabe
 
 - Sell wurde verkauft.
-- Buy-Level wurde freigegeben.
+- Zugehöriger Kaufzyklus wurde abgeschlossen.
 - Neue Buy-Order erlaubt oder blockiert.
 
 ## Testziel
 
-Ein Buy-Level darf erst nach verkauftem Sell wieder freigegeben werden.
+Eine Verkaufsbestätigung schließt nur den zugehörigen Kaufzyklus ab. Andere Käufe am gleichen Preis und ihre Verkaufszuordnungen bleiben unverändert.

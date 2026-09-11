@@ -14,7 +14,7 @@ Doppelte Orders und Doppelverkaeufe verhindern.
 ## Pruefung
 
 - Keine offene Order mit gleicher Seite und gleichem Level.
-- Keine neue Buy-Order auf gesperrtem Buy-Level.
+- Keine neue Buy-Order auf einem tatsächlich durch eine Buy- oder Sell-Order belegten Level. Alte Zyklussperren allein blockieren das Nachsetzen nicht.
 - Keine zweite Sell-Order fuer dieselbe abgeholte Buy-Order.
 - Keine Sell-Order ohne vorher abgeholte Buy-Order.
 - Keine Order, wenn offene Orders nicht sicher gelesen wurden.
@@ -31,4 +31,4 @@ Doppelte Orders und Doppelverkaeufe verhindern.
 
 ## Testziel
 
-Bei jedem unklaren Zustand wird blockiert.
+Ungeklärte Orderübermittlungen und fehlgeschlagene Börsenabfragen blockieren neue Übermittlungen. Ein alter Zykluseintrag ohne Verkaufsbestätigung blockiert dagegen nicht allein ein freies Buy-Level mit ausreichendem Abstand und freien USDT.

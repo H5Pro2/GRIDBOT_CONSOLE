@@ -17,11 +17,6 @@ function sameGridOrder(left, right) {
     && Math.abs(left.price - right.price) <= 0.0001
 }
 
-function hasCycleSellOrder({ price, baseSize }, gridSpacing, openOrders) {
-  const sellPrice = Math.round((price + gridSpacing) * 100000000) / 100000000
-  return hasOpenOrder({ side: 'sell', price: sellPrice, baseSize }, openOrders)
-}
-
 function findNextGridLevel(price, levels) {
   return levels.find((level) => level > price + 0.0001)
 }
@@ -40,6 +35,7 @@ function getOrderStatus(order) {
 
 function orderLevelKey(order) {
   return [
+    order.orderId || order.clientOrderId || order.lockedBySellOrderId || '',
     order.side,
     Number(order.price).toFixed(8),
     Number(order.lockedBySellPrice || 0).toFixed(8),
@@ -177,7 +173,7 @@ export function createPhemexMonitorHandler({
       const missingKnownOrders = knownOrders.filter((knownOrder) =>
         knownOrder.orderId
         && !knownOrder.status.startsWith('locked')
-        && !gridOrders.some((openOrder) => sameGridOrder(knownOrder, openOrder)),
+        && !gridOrders.some((openOrder) => knownOrder.orderId === openOrder.orderId),
       )
       const knownLockedOrders = knownOrders.filter((order) =>
         order.side === 'buy'
@@ -279,14 +275,22 @@ export function createPhemexMonitorHandler({
           reason: 'Buy nicht nachgesetzt: Status der verschwundenen Order ist nicht Filled.',
         })
       }
-      const lockedBuyCycles = [...existingLockedCycles, ...filledBuyOrders]
+      // Preserve existing sale ownership. A new fill is a separate cycle, even at the same price.
+      const lockedBuyCycles = [
+        ...existingLockedCycles.filter((order) => order.lockedBySellOrderId),
+        ...filledBuyOrders,
+        ...existingLockedCycles.filter((order) => !order.lockedBySellOrderId),
+      ]
       const cycleTargets = new Set()
       for (const cycle of lockedBuyCycles) {
         const target = cycle.targetSellPrice.toFixed(8)
-        if (cycleTargets.has(target)) throw new Error(`Mehrdeutige Kaufzyklen für Sell-Level ${cycle.targetSellPrice}. Keine neuen Orders gesetzt.`)
+        if (cycleTargets.has(target)) {
+          cycle.sellDeferred = true
+          debug.push({ type: 'sell-blocked', side: 'sell', price: cycle.targetSellPrice,
+            reason: 'Sell-Level gehört bereits zu einem anderen Kaufzyklus; Zuordnungen bleiben getrennt.' })
+          continue
+        }
         cycleTargets.add(target)
-      }
-      for (const cycle of lockedBuyCycles) {
         if (!cycle.lockedBySellOrderId && knownLockedOrders.some((order) => orderLevelKey(order) === orderLevelKey(cycle))
           && !isFilledOrderStatus(getOrderStatus(lockedStatusByLevel.get(orderLevelKey(cycle))))) {
           cycle.sellUnresolved = true
@@ -302,7 +306,7 @@ export function createPhemexMonitorHandler({
           && !lockedBuyCycles.some((other) => other !== cycle
             && (Math.abs(other.targetSellPrice - price) <= 0.0001 || Math.abs(other.price - price) <= 0.0001)))
         if (higherTarget !== undefined) {
-          debug.push({ type: 'sell-retargeted', side: 'sell', price: higherTarget, reason: `Sell-Ziel von ${cycle.targetSellPrice} auf ${higherTarget} angehoben; Kaufbereich ${cycle.price} bleibt gesperrt.` })
+          debug.push({ type: 'sell-retargeted', side: 'sell', price: higherTarget, reason: `Sell-Ziel von ${cycle.targetSellPrice} auf ${higherTarget} angehoben; Zuordnung zum Kauf bei ${cycle.price} bleibt erhalten.` })
           cycle.targetSellPrice = higherTarget
           cycle.lockedBySellOrderId = ''
         }
@@ -315,10 +319,10 @@ export function createPhemexMonitorHandler({
       }))
       await monitorState?.checkpoint([...gridOrders, ...unresolvedBuyOrders, ...cycleLocks()])
       for (const lock of cycleLocks()) {
-        debug.push({ type: 'buy-blocked', side: 'buy', price: lock.price,
+        debug.push({ type: 'cycle-pending', side: 'buy', price: lock.price,
           reason: lock.lockedBySellOrderId
-            ? `Kaufzyklus gesperrt bis Sell ${lock.lockedBySellPrice}, ID ${lock.lockedBySellOrderId}, bestätigt ausgeführt ist.`
-            : `Kaufzyklus gesperrt: Sell-Ziel ${lock.lockedBySellPrice} hat noch keine bestätigte Order-ID.` })
+            ? `Alter Kaufzyklus wartet auf Sell ${lock.lockedBySellPrice}, ID ${lock.lockedBySellOrderId}. Fehlende Buy-Level werden unabhängig geprüft.`
+            : `Alter Kaufzyklus ohne bestätigte Sell-ID am Ziel ${lock.lockedBySellPrice}. Fehlende Buy-Level werden unabhängig geprüft.` })
       }
 
       const buyOrderBlock = {
@@ -330,15 +334,12 @@ export function createPhemexMonitorHandler({
           .map((price) => buildGridOrder({ side: 'buy', price, orderSize }))
           .filter((order) => !hasOpenOrder(order, openOrders))
           .filter((order) => !hasOpenOrder({ side: 'sell', price: order.price }, openOrders))
-          .filter((order) => !hasCycleSellOrder(order, gridSpacing, openOrders))
-          .filter((order) => !lockedBuyCycles.some((lockedOrder) => Math.abs(lockedOrder.price - order.price) <= 0.0001))
-          .filter((order) => !lockedBuyCycles.some((lockedOrder) => Math.abs(lockedOrder.targetSellPrice - order.price) <= 0.0001))
           .filter((order) => !unresolvedBuyOrders.some((missingOrder) => Math.abs(missingOrder.price - order.price) <= 0.0001)),
       }
       const sellOrderBlock = {
         reservedBase: 0,
         filledBuyTargets: lockedBuyCycles
-          .filter((order) => !order.sellUnresolved)
+          .filter((order) => !order.sellUnresolved && !order.sellDeferred)
           .map((order) => ({
             ...buildGridOrder({ side: 'sell', price: order.targetSellPrice, orderSize: order.baseSize || orderSize }),
             sourceBuyPrice: order.price,
@@ -368,7 +369,14 @@ export function createPhemexMonitorHandler({
           debug.push({ type: 'buy-blocked', side: order.side, price: order.price, reason: 'Preis zu nah am Live-Preis.' })
           continue
         }
-        if (quoteBalance - buyOrderBlock.reservedQuote + 0.00000001 < order.quoteSize) {
+        const freshOrders = await loadPhemexOpenOrders({ key, secret, symbol })
+        if (freshOrders.some((existing) => Math.abs(existing.price - order.price) <= 0.0001)) {
+          debug.push({ type: 'buy-blocked', side: order.side, price: order.price, reason: 'Level ist inzwischen durch eine Börsenorder belegt.' })
+          continue
+        }
+        const freeQuote = await loadPhemexBalance({ key, secret, currency: quoteAsset })
+        const availableQuote = Math.min(freeQuote, quoteBalance - buyOrderBlock.reservedQuote)
+        if (!Number.isFinite(availableQuote) || availableQuote + 0.00000001 < order.quoteSize) {
           blocked.push({ side: order.side, price: order.price, reason: 'Quote-Guthaben reicht nicht.' })
           debug.push({ type: 'buy-blocked', side: order.side, price: order.price, reason: 'Quote-Guthaben reicht nicht.' })
           continue
@@ -405,6 +413,7 @@ export function createPhemexMonitorHandler({
       ]
       for (let index = 0; index < missingSellOrders.length; index += 1) {
         const order = missingSellOrders[index]
+        if ([...openOrders, ...created].some((existing) => Math.abs(existing.price - order.price) <= 0.0001)) continue
         if (!Number.isFinite(order.sourceBuyPrice) && [...openOrders, ...created].some((existing) => existing.side === 'buy' && Math.abs(existing.price - (order.price - gridSpacing)) <= 0.0001)) continue
         if (created.length > 0) await sleep(600)
         const currentSellPrice = await loadPhemexLastPrice({ symbol })
@@ -445,7 +454,7 @@ export function createPhemexMonitorHandler({
         })
       }
       const sellOrdersAfterCreate = [...gridOrders, ...created].filter((order) => order.side === 'sell')
-      const sellForCycle = (cycle) => sellOrdersAfterCreate.find((sell) => cycle.lockedBySellOrderId
+      const sellForCycle = (cycle) => !cycle.sellDeferred && sellOrdersAfterCreate.find((sell) => cycle.lockedBySellOrderId
         ? sell.orderId === cycle.lockedBySellOrderId
           || (sell.sourceBuyOrderId && sell.sourceBuyOrderId === cycle.orderId)
         : Math.abs(sell.price - cycle.targetSellPrice) <= 0.0001)
@@ -468,7 +477,6 @@ export function createPhemexMonitorHandler({
         const index = levels.findIndex((price) => Math.abs(price - sell.price) <= 0.0001)
         if (index <= 0 || !sell.orderId) continue
         const buyPrice = levels[index - 1]
-        if (currentOrders.some((order) => order.side === 'buy' && Math.abs(order.price - buyPrice) <= 0.0001)) continue
         currentOrders.push({ side: 'buy', price: buyPrice, baseSize: sell.baseSize || orderSize, status: 'locked', lockedBySellPrice: sell.price, lockedBySellOrderId: sell.orderId })
       }
       const debugSummary = {

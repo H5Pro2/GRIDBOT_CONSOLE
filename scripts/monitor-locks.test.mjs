@@ -29,8 +29,8 @@ test('confirmed sale releases the old buy cycle', async () => {
 for (const status of [undefined, 'Canceled', 'PartiallyFilled']) {
   test(`uncompleted sale preserves lock and sale ID: ${status}`, async () => {
     const { result, created } = await run(status)
-    assert.equal(created.length, 0)
-    assert.equal(result.openOrders.find((order) => order.price === 90)?.lockedBySellOrderId, 'sell')
+    assert.deepEqual(created.map((order) => [order.side, order.price]), [['buy', 90]])
+    assert.equal(result.openOrders.find((order) => order.orderId === 'buy')?.lockedBySellOrderId, 'sell')
   })
 }
 

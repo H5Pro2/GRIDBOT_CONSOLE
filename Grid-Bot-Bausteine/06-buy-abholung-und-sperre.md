@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Wenn eine Buy-Order abgeholt wurde, wird ihr Buy-Level gesperrt.
+Nach bestätigter Buy-Ausführung wird ein Kaufzyklus anhand der Order-ID geführt. Der intern als Sperre bezeichnete Eintrag schützt die Verkaufszuordnung, verhindert aber keine Wiederauffüllung freier Buy-Level.
 
 ## Eingaben
 
@@ -16,20 +16,20 @@ Wenn eine Buy-Order abgeholt wurde, wird ihr Buy-Level gesperrt.
 - Buy-Order war vorher bekannt.
 - Buy-Order ist nicht mehr offen.
 - Asset-Guthaben ist vorhanden.
-- Das Buy-Level ist noch nicht gesperrt.
+- Phemex bestätigt den Status `Filled`; derselbe Kauf wird nicht doppelt verarbeitet.
 
 ## Aktion
 
-- Buy-Level sperren.
+- Kaufzyklus mit eigener Order-ID speichern.
 - Buy-Order als abgeholt markieren.
 - Sell-Folgeorder im naechst hoeheren Grid-Level vorbereiten.
 
 ## Ausgabe
 
 - Buy wurde abgeholt.
-- Buy-Level ist gesperrt.
+- Alter Kaufzyklus bleibt bis zum bestätigten Verkauf erhalten.
 - Ziel-Level fuer Sell ist bekannt.
 
 ## Testziel
 
-Nach abgeholter Buy-Order darf auf diesem Level keine neue Buy-Order entstehen.
+Nachkäufe dürfen bei freien USDT, ausreichendem Preisabstand und freiem Börsenlevel entstehen. Auch mehrere Kaufzyklen am selben Preis bleiben getrennt; bestehende Sell-Orders werden nicht übernommen oder gelöscht.

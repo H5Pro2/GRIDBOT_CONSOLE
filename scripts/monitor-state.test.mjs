@@ -114,9 +114,9 @@ test('unavailable buy status cannot erase an existing lock or permit another sal
     loadPhemexBalance: async () => 100,
     loadPhemexOpenOrders: async () => [],
     loadPhemexOrderById: async () => undefined,
-    createPhemexLimitOrder: async () => assert.fail('An unresolved cycle must not trade'),
+    createPhemexLimitOrder: async (order) => { assert.equal(order.side, 'buy'); return { orderID: 'refill' } },
   })({}, {})
-  assert.equal(result.openOrders[0].orderId, 'buy')
-  assert.equal(result.openOrders[0].status, 'locked-pending')
-  assert.ok(result.debug.some((entry) => entry.reason.includes('keine bestätigte Order-ID')))
+  assert.equal(result.openOrders.find((order) => order.orderId === 'buy').status, 'locked-pending')
+  assert.ok(result.openOrders.some((order) => order.orderId === 'refill'))
+  assert.ok(result.debug.some((entry) => entry.type === 'cycle-pending'))
 })

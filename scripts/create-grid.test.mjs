@@ -31,7 +31,7 @@ test('start-asset sells reserve their buy level and do not conflict with fresh b
 test('existing orders survive creation and their levels are not duplicated', async () => {
   const orders = [{ orderId: 'b', clientOrderId: 'gb2-b', side: 'buy', price: 90, baseSize: 0.1 }, { orderId: 's', clientOrderId: 'gb2-s', side: 'sell', price: 110, baseSize: 0.1 }]
   const { result, created } = await run({ orders, known: orders })
-  assert.equal(created.length, 0)
+  assert.deepEqual(created.map((order) => [order.side, order.price]), [['buy', 100]])
   assert.ok(result.openOrders.some((order) => order.orderId === 'b'))
   assert.ok(result.openOrders.some((order) => order.orderId === 's'))
   assert.ok(result.openOrders.some((order) => order.price === 100 && order.lockedBySellOrderId === 's'))
@@ -50,7 +50,8 @@ for (const size of [0.1, 0.2]) {
   test(`occupied buy and sell levels stay occupied with quantity ${size}`, async () => {
     const orders = [{ orderId: 'buy', clientOrderId: 'gb2-buy', side: 'buy', price: 90, baseSize: size }, { orderId: 'sell', clientOrderId: 'gb2-sell', side: 'sell', price: 110, baseSize: size }]
     const { result, created } = await run({ orders, known: orders.map((order) => ({ ...order, baseSize: 0.1 })), asset: 1, start: true })
-    assert.equal(created.some((order) => order.price === 90 || order.price === 100 || order.price === 110), false)
+    assert.equal(created.some((order) => order.price === 90 || order.price === 110), false)
+    assert.ok(created.some((order) => order.side === 'buy' && order.price === 100))
     assert.equal(result.openOrders.find((order) => order.orderId === 'buy')?.baseSize, size)
     assert.equal(result.debug.some((entry) => entry.type === 'size-mismatch'), size < 0.1)
   })

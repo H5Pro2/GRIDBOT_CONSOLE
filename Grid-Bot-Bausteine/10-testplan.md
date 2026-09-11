@@ -41,7 +41,9 @@ Erst wenn ein Baustein stabil ist, wird der naechste Baustein angeschlossen.
 
 ## Test 6: Blockierung
 
-- gesperrtes Buy-Level blockiert neue Buy-Order.
+- Alte Zyklussperren verhindern keine Wiederauffüllung freier Buy-Level mit ausreichendem Preisabstand und freien USDT.
+- Zwei fehlende Level bei 98,80 und 99,50 werden mit je 0,1 SOL und 20,20769997 freien USDT nachgesetzt.
+- Alte und neue Kaufzyklen am selben Preis bleiben auch nach Neustart getrennt.
 - fehlendes Guthaben blockiert Order.
 - vorhandene offene Order blockiert Doppelorder.
 - unklare Boersenantwort blockiert Order.

@@ -27,9 +27,9 @@ Alle `Grid-Abfragezeit` Sekunden wird geprueft, was passiert ist und welche naec
 
 ## Aktion
 
-- Bei abgeholter Buy-Order: Buy-Level sperren und Sell-Folgeorder pruefen.
-- Bei abgeholter Sell-Order: Buy-Level freigeben und neue Buy-Order pruefen.
-- Bei fehlender Buy-Order: nur nachsetzen, wenn Level frei und Quote-Guthaben ausreichend ist.
+- Bei bestätigter Buy-Ausführung: den Kaufzyklus anhand der Order-ID führen und die Sell-Folgeorder prüfen.
+- Bei bestätigter Sell-Ausführung: nur den zugehörigen Kaufzyklus abschließen.
+- Bei fehlender Buy-Order: bei freiem Börsenlevel, ausreichenden freien USDT und erfüllter 25%-Abstandsregel nachsetzen, unabhängig von alten Zyklussperren. Offene Orders und freie USDT werden unmittelbar vor dem Senden erneut geprüft; bereits geplante Ausgaben werden reserviert.
 - Bei fehlender Sell-Order: nur setzen, wenn vorher Buy abgeholt wurde und Asset-Guthaben reicht.
 
 ## Mindestmenge offener Orders
@@ -52,4 +52,4 @@ Alle `Grid-Abfragezeit` Sekunden wird geprueft, was passiert ist und welche naec
 
 ## Testziel
 
-Die Order-Pruefung entscheidet nur anhand von Preis, Guthaben, offenen Orders und Sperren.
+Alte Zyklussperren blockieren kein freies Buy-Level. Preisabstand, verfügbare USDT, aktuelle Börsenorders und ungeklärte Orderübermittlungen werden weiterhin geprüft. Neue Käufe behalten eigene IDs und überschreiben keine alten Zyklen.
