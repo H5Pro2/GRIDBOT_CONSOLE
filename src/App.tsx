@@ -926,6 +926,7 @@ function App({ onShutdown }: { onShutdown: () => void }) {
           grids: bot.grids,
           orderSize: bot.orderSize,
           useStartAsset: bot.useStartAsset,
+          botId: bot.id,
           knownOrders: bot.orders ?? gridOrders[bot.id] ?? [],
         }),
       })
@@ -978,6 +979,7 @@ function App({ onShutdown }: { onShutdown: () => void }) {
           grids: bot.grids,
           orderSize: bot.orderSize,
           useStartAsset: bot.useStartAsset,
+          botId: bot.id,
           knownOrders: bot.orders ?? gridOrders[bot.id] ?? [],
         }),
       })

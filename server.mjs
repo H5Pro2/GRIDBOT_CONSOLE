@@ -531,7 +531,10 @@ const reconcileOrderSizes = createOrderSizeReconciler({
   cancelPhemexOrder, createPhemexLimitOrder,
 })
 
+const monitorJournal = createReplacementJournal(join(process.cwd(), 'data', 'monitor-state'))
+
 const handlePhemexCreateGrid = createPhemexCreateGridHandler({
+  monitorJournal,
   reconcileOrderSizes,
   readRequestJson,
   sendJson,
@@ -579,6 +582,7 @@ async function handlePhemexSnapshot(request, response) {
 }
 
 const handlePhemexMonitor = createPhemexMonitorHandler({
+  monitorJournal,
   reconcileOrderSizes,
   readRequestJson,
   sendJson,
