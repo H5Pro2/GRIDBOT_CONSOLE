@@ -304,7 +304,7 @@ export function createPhemexMonitorHandler({
           && price - livePrice >= minimumPriceDistance
           && !openOrders.some((order) => Math.abs(order.price - price) <= 0.0001)
           && !lockedBuyCycles.some((other) => other !== cycle
-            && (Math.abs(other.targetSellPrice - price) <= 0.0001 || Math.abs(other.price - price) <= 0.0001)))
+            && Math.abs(other.targetSellPrice - price) <= 0.0001))
         if (higherTarget !== undefined) {
           debug.push({ type: 'sell-retargeted', side: 'sell', price: higherTarget, reason: `Sell-Ziel von ${cycle.targetSellPrice} auf ${higherTarget} angehoben; Zuordnung zum Kauf bei ${cycle.price} bleibt erhalten.` })
           cycle.targetSellPrice = higherTarget
@@ -350,7 +350,7 @@ export function createPhemexMonitorHandler({
           ? levels
             .slice(1)
             .filter((price) => price > livePrice)
-            .filter((price) => !lockedBuyCycles.some((order) => Math.abs(order.price - price) <= 0.0001 || Math.abs(order.targetSellPrice - price) <= 0.0001))
+            .filter((price) => !lockedBuyCycles.some((order) => Math.abs(order.targetSellPrice - price) <= 0.0001))
             .sort((left, right) => left - right)
             .map((price) => buildGridOrder({ side: 'sell', price, orderSize }))
             .filter((order) => !hasOpenOrder(order, openOrders))
